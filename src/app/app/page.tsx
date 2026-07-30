@@ -174,12 +174,12 @@ export default function AppPage() {
           <Link href="/" className="flex items-center gap-2.5">
             <Image
               src="/logo.jpeg"
-              alt="Swap Router"
+              alt="VERA"
               width={28}
               height={28}
               className="rounded-full object-cover"
             />
-            <span className="text-base font-semibold tracking-tight">Swap Router</span>
+            <span className="text-base font-semibold tracking-tight">VERA</span>
           </Link>
           <WalletMultiButton />
         </div>

@@ -76,12 +76,12 @@ export default function LandingPage() {
           <div className="flex items-center gap-2.5">
             <Image
               src="/logo.jpeg"
-              alt="Swap Router"
+              alt="VERA"
               width={28}
               height={28}
               className="rounded-full object-cover"
             />
-            <span className="text-base font-semibold tracking-tight">Swap Router</span>
+            <span className="text-base font-semibold tracking-tight">VERA</span>
           </div>
           <LaunchButton className={CTA}>Launch app</LaunchButton>
         </div>
@@ -354,7 +354,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-[var(--line)]">
         <div className="mx-auto w-full max-w-7xl px-6 py-8 text-xs text-[var(--muted)] lg:px-12">
-          Swap Router — swap routing via Jupiter, on-chain reads via Helius, MEV-protected
+          VERA — swap routing via Jupiter, on-chain reads via Helius, MEV-protected
           submission via Jito.
         </div>
       </footer>

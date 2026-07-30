@@ -21,7 +21,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Safety-Scoring Swap Router",
+  title: "VERA — Safety-Scoring Swap Router",
   description: "Swap on Solana with a rug-check score rendered alongside every quote.",
 };
 

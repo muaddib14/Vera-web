@@ -52,6 +52,19 @@ const VERDICT_BANNER: Record<ScoreResult["verdict"], { text: string; cls: string
   },
 };
 
+// wallet-adapter wraps real RPC/simulation failures in a generic
+// "WalletSendTransactionError: Unexpected error" — the actual cause is
+// usually attached as `.error` on the wrapper. Surface that instead.
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "error" in err) {
+    const cause = (err as { error?: unknown }).error;
+    if (cause instanceof Error && cause.message) return cause.message;
+    if (typeof cause === "string" && cause) return cause;
+  }
+  if (err instanceof Error) return err.message;
+  return "Swap failed.";
+}
+
 const INPUT =
   "rounded-lg border border-[var(--line)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--accent)]";
 const LABEL = "text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]";
@@ -159,7 +172,7 @@ export default function AppPage() {
         setMeasuring(false);
       }
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Swap failed.");
+      setStatus(extractErrorMessage(err));
       setBusy(false);
     }
   }

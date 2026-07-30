@@ -1,7 +1,22 @@
 import { PublicKey } from "@solana/web3.js";
 
-const JUP_BASE = "https://lite-api.jup.ag/swap/v1";
 const JUPITER_REFERRAL_PROGRAM_ID = new PublicKey("REFER4ZgmyYx9c6He5XfaTMiGfdLwRnkV4RPp9t9iF3");
+
+// JUPITER_API_KEY is intentionally NOT prefixed with NEXT_PUBLIC_ — Next.js
+// only inlines NEXT_PUBLIC_ vars into the browser bundle, so this reads as
+// undefined in client code and the key never ships to visitors. Calls made
+// from the server (the scoring engine) get the authenticated, higher-limit
+// endpoint; calls made from the browser (the swap UI) transparently fall
+// back to the free public endpoint. Same functions, correct behavior either side.
+const JUPITER_API_KEY = process.env.JUPITER_API_KEY;
+const JUP_BASE = JUPITER_API_KEY ? "https://api.jup.ag/swap/v1" : "https://lite-api.jup.ag/swap/v1";
+
+function jupiterHeaders(extra?: Record<string, string>): Record<string, string> {
+  return {
+    ...(JUPITER_API_KEY ? { "x-api-key": JUPITER_API_KEY } : {}),
+    ...extra,
+  };
+}
 
 export const SOL_MINT = "So11111111111111111111111111111111111111112";
 
@@ -40,7 +55,7 @@ export type TokenInfo = {
 };
 
 export async function getTokenInfo(mint: string): Promise<TokenInfo | null> {
-  const res = await fetch(`${JUP_TOKENS_BASE}/search?query=${mint}`);
+  const res = await fetch(`${JUP_TOKENS_BASE}/search?query=${mint}`, { headers: jupiterHeaders() });
   if (!res.ok) return null;
   const results = (await res.json()) as TokenInfo[];
   return results.find((t) => t.id === mint) ?? results[0] ?? null;
@@ -82,7 +97,7 @@ export async function getQuote(params: {
     url.searchParams.set("platformFeeBps", String(PLATFORM_FEE_BPS));
   }
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { headers: jupiterHeaders() });
   if (!res.ok) throw new Error(`Jupiter quote failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
@@ -100,7 +115,7 @@ export async function getSwapTransaction(params: {
 }): Promise<{ swapTransaction: string }> {
   const res = await fetch(`${JUP_BASE}/swap`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jupiterHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       quoteResponse: params.quoteResponse,
       userPublicKey: params.userPublicKey,

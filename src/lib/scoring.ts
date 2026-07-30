@@ -58,7 +58,7 @@ function getConnection() {
 // ---- Tier 1 — hard kills ---------------------------------------------------
 
 async function tier1Checks(connection: Connection, mint: PublicKey): Promise<ScoreLine[]> {
-  const mintAccountInfo = await connection.getAccountInfo(mint);
+  const mintAccountInfo = await withRetry(() => connection.getAccountInfo(mint));
   if (!mintAccountInfo) {
     throw new Error("Mint account not found — check the address.");
   }
@@ -114,11 +114,25 @@ async function tier1Checks(connection: Connection, mint: PublicKey): Promise<Sco
 
 // ---- Tier 2 — soft signals -------------------------------------------------
 
+// Solana RPC nodes (Helius included) intermittently return a transient
+// "account index service overloaded" error on getTokenLargestAccounts under
+// load. One retry with a short backoff clears most of these without making
+// the user re-click "Get quote".
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 400): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (retries <= 0) throw err;
+    await new Promise((r) => setTimeout(r, delayMs));
+    return withRetry(fn, retries - 1, delayMs * 2);
+  }
+}
+
 async function holderConcentration(connection: Connection, mint: PublicKey, supply: bigint, decimals: number): Promise<ScoreLine> {
-  const largest = await connection.getTokenLargestAccounts(mint);
+  const largest = await withRetry(() => connection.getTokenLargestAccounts(mint));
   const top = largest.value.slice(0, 10);
 
-  const owners = await connection.getMultipleParsedAccounts(top.map((a) => a.address));
+  const owners = await withRetry(() => connection.getMultipleParsedAccounts(top.map((a) => a.address)));
   const ownerPubkeys: PublicKey[] = [];
   for (const acc of owners.value) {
     const parsed = (acc?.data as { parsed?: { info?: { owner?: string } } } | undefined)?.parsed;
@@ -126,7 +140,7 @@ async function holderConcentration(connection: Connection, mint: PublicKey, supp
   }
 
   const ownerAccounts = ownerPubkeys.length
-    ? await connection.getMultipleAccountsInfo(ownerPubkeys)
+    ? await withRetry(() => connection.getMultipleAccountsInfo(ownerPubkeys))
     : [];
 
   let poolExcludedAmount = BigInt(0);
@@ -156,7 +170,7 @@ async function metadataMutability(connection: Connection, mint: PublicKey): Prom
     [Buffer.from("metadata"), METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
     METADATA_PROGRAM_ID
   );
-  const info = await connection.getAccountInfo(metadataPda);
+  const info = await withRetry(() => connection.getAccountInfo(metadataPda));
   if (!info) {
     return {
       key: "metadata_mutable",
@@ -211,7 +225,7 @@ async function tokenAge(connection: Connection, mint: PublicKey): Promise<ScoreL
   const maxPages = 2;
 
   for (let page = 0; page < maxPages; page++) {
-    const sigs = await connection.getSignaturesForAddress(mint, { limit: 1000, before });
+    const sigs = await withRetry(() => connection.getSignaturesForAddress(mint, { limit: 1000, before }));
     if (sigs.length === 0) {
       reachedGenesis = true;
       break;
@@ -269,15 +283,15 @@ async function tokenAge(connection: Connection, mint: PublicKey): Promise<ScoreL
 // a real rug lever; spread across many holders is lower-risk by
 // construction. Never asserts "locked" without seeing the burn.
 async function raydiumLpLockStatus(connection: Connection, ammKey: string): Promise<ScoreLine | null> {
-  const poolInfo = await connection.getAccountInfo(new PublicKey(ammKey));
+  const poolInfo = await withRetry(() => connection.getAccountInfo(new PublicKey(ammKey)));
   if (!poolInfo || poolInfo.owner.toBase58() !== RAYDIUM_V4_PROGRAM_ID) return null;
 
   const decoded = LIQUIDITY_STATE_LAYOUT_V4.decode(poolInfo.data);
   const lpMint = decoded.lpMint as PublicKey;
 
   const [supply, largest] = await Promise.all([
-    connection.getTokenSupply(lpMint),
-    connection.getTokenLargestAccounts(lpMint),
+    withRetry(() => connection.getTokenSupply(lpMint)),
+    withRetry(() => connection.getTokenLargestAccounts(lpMint)),
   ]);
 
   const top = largest.value[0];
@@ -294,7 +308,7 @@ async function raydiumLpLockStatus(connection: Connection, ammKey: string): Prom
   const totalSupply = BigInt(supply.value.amount);
   const topPct = totalSupply > BigInt(0) ? (Number(BigInt(top.amount) * BigInt(10000) / totalSupply) / 100) : 0;
 
-  const ownerInfo = await connection.getParsedAccountInfo(top.address);
+  const ownerInfo = await withRetry(() => connection.getParsedAccountInfo(top.address));
   const ownerAddress = (
     ownerInfo.value?.data as { parsed?: { info?: { owner?: string } } } | undefined
   )?.parsed?.info?.owner;
@@ -428,7 +442,7 @@ export async function scoreMint(mintAddress: string): Promise<ScoreResult> {
   const mint = new PublicKey(mintAddress);
   const connection = getConnection();
 
-  const mintAccountInfo = await connection.getAccountInfo(mint);
+  const mintAccountInfo = await withRetry(() => connection.getAccountInfo(mint));
   if (!mintAccountInfo) throw new Error("Mint account not found — check the address.");
   const programId = mintAccountInfo.owner;
   const mintData = unpackMint(mint, mintAccountInfo, programId);

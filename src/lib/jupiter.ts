@@ -28,6 +28,34 @@ export function getReferralFeeAccount(outputMint: string): string | undefined {
   return feeAccount.toBase58();
 }
 
+const JUP_TOKENS_BASE = "https://lite-api.jup.ag/tokens/v2";
+
+export type TokenInfo = {
+  id: string;
+  name: string;
+  symbol: string;
+  icon?: string;
+  decimals: number;
+  usdPrice?: number;
+};
+
+export async function getTokenInfo(mint: string): Promise<TokenInfo | null> {
+  const res = await fetch(`${JUP_TOKENS_BASE}/search?query=${mint}`);
+  if (!res.ok) return null;
+  const results = (await res.json()) as TokenInfo[];
+  return results.find((t) => t.id === mint) ?? results[0] ?? null;
+}
+
+export function formatTokenAmount(rawAmount: string, decimals: number): string {
+  const value = Number(rawAmount) / 10 ** decimals;
+  return value.toLocaleString(undefined, { maximumFractionDigits: decimals > 6 ? 4 : decimals });
+}
+
+export function formatUsd(amount: number): string {
+  if (amount < 0.01) return "<$0.01";
+  return amount.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
 export type JupiterQuote = {
   inputMint: string;
   outputMint: string;

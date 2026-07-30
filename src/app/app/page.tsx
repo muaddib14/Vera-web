@@ -2,19 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { VersionedTransaction } from "@solana/web3.js";
+import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import {
   PLATFORM_FEE_BPS,
   SOL_MINT,
+  formatTokenAmount,
+  formatUsd,
   getQuote,
   getReferralFeeAccount,
   getSwapTransaction,
+  getTokenInfo,
   referralFeeActive,
   type JupiterQuote,
+  type TokenInfo,
 } from "@/lib/jupiter";
 import { sendBundle } from "@/lib/jito";
 import { measureRealizedSwap, type MevComparison } from "@/lib/mev";
@@ -65,6 +69,15 @@ function extractErrorMessage(err: unknown): string {
   return "Swap failed.";
 }
 
+function Spinner() {
+  return (
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z" />
+    </svg>
+  );
+}
+
 const INPUT =
   "rounded-lg border border-[var(--line)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--accent)]";
 const LABEL = "text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]";
@@ -86,6 +99,27 @@ export default function AppPage() {
   const [useJito, setUseJito] = useState(true);
   const [mevResult, setMevResult] = useState<MevComparison | null>(null);
   const [measuring, setMeasuring] = useState(false);
+  const [solBalance, setSolBalance] = useState<number | null>(null);
+  const [solInfo, setSolInfo] = useState<TokenInfo | null>(null);
+  const [outputInfo, setOutputInfo] = useState<TokenInfo | null>(null);
+
+  useEffect(() => {
+    getTokenInfo(SOL_MINT).then(setSolInfo);
+  }, []);
+
+  useEffect(() => {
+    if (!publicKey) {
+      setSolBalance(null);
+      return;
+    }
+    let cancelled = false;
+    connection.getBalance(publicKey).then((lamports) => {
+      if (!cancelled) setSolBalance(lamports / LAMPORTS_PER_SOL);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, publicKey, signature]);
 
   async function handleGetQuote() {
     setStatus(null);
@@ -95,8 +129,24 @@ export default function AppPage() {
     setScoreError(null);
     setAckRisk(false);
     setMevResult(null);
+    setOutputInfo(null);
     if (!outputMint) {
       setStatus("Paste a token mint address first.");
+      return;
+    }
+    try {
+      new PublicKey(outputMint);
+    } catch {
+      setStatus("That doesn't look like a valid mint address.");
+      return;
+    }
+    const amountNum = parseFloat(amountSol);
+    if (!amountSol || isNaN(amountNum) || amountNum <= 0) {
+      setStatus("Enter an amount greater than 0.");
+      return;
+    }
+    if (solBalance !== null && amountNum > solBalance) {
+      setStatus(`You only have ${solBalance.toFixed(4)} SOL.`);
       return;
     }
 
@@ -110,6 +160,8 @@ export default function AppPage() {
       .then(setQuote)
       .catch((err) => setStatus(err instanceof Error ? err.message : "Failed to fetch quote."))
       .finally(() => setBusy(false));
+
+    getTokenInfo(outputMint).then(setOutputInfo);
 
     const scorePromise = fetch(`/api/score/${outputMint}`)
       .then(async (res) => {
@@ -203,31 +255,70 @@ export default function AppPage() {
         <section className="flex w-full flex-col gap-5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-7 lg:w-[26rem] lg:shrink-0">
           <h1 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">Trade</h1>
 
-          <label className="flex flex-col gap-1.5">
-            <span className={LABEL}>Amount (SOL)</span>
-            <input
-              className={INPUT}
-              value={amountSol}
-              onChange={(e) => setAmountSol(e.target.value)}
-              inputMode="decimal"
-            />
-          </label>
+          <div className="rounded-lg border border-[var(--line)] bg-[var(--background)] p-4">
+            <div className="flex items-center justify-between">
+              <span className={LABEL}>Sell</span>
+              {publicKey && (
+                <button
+                  type="button"
+                  onClick={() => solBalance !== null && setAmountSol(String(Math.max(solBalance - 0.01, 0)))}
+                  className="text-xs font-medium text-[var(--accent-strong)] hover:underline"
+                >
+                  Balance: {solBalance !== null ? solBalance.toFixed(4) : "—"} SOL · Max
+                </button>
+              )}
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <input
+                className="w-full bg-transparent text-2xl font-semibold text-[var(--foreground)] outline-none"
+                value={amountSol}
+                onChange={(e) => setAmountSol(e.target.value)}
+                inputMode="decimal"
+              />
+              <span className="shrink-0 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-sm font-semibold text-[var(--foreground)]">
+                SOL
+              </span>
+            </div>
+            {solInfo?.usdPrice && !isNaN(parseFloat(amountSol)) && (
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                {formatUsd(parseFloat(amountSol) * solInfo.usdPrice)}
+              </p>
+            )}
+          </div>
 
-          <label className="flex flex-col gap-1.5">
-            <span className={LABEL}>Output token mint</span>
+          <div className="relative flex justify-center">
+            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[var(--line)]" />
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--muted)]">
+              ↓
+            </span>
+          </div>
+
+          <div className="rounded-lg border border-[var(--line)] bg-[var(--background)] p-4">
+            <span className={LABEL}>Buy</span>
             <input
-              className={`${INPUT} font-mono text-xs`}
+              className="mt-2 w-full bg-transparent font-mono text-sm text-[var(--foreground)] outline-none"
               value={outputMint}
               onChange={(e) => setOutputMint(e.target.value)}
               placeholder="Paste a mint address"
             />
-          </label>
+            {outputInfo && (
+              <div className="mt-2 flex items-center gap-2 border-t border-[var(--line)] pt-2">
+                {outputInfo.icon && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={outputInfo.icon} alt="" className="h-5 w-5 rounded-full" />
+                )}
+                <span className="text-sm font-semibold text-[var(--foreground)]">{outputInfo.symbol}</span>
+                <span className="text-xs text-[var(--muted)]">{outputInfo.name}</span>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={handleGetQuote}
             disabled={busy}
-            className="rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-on)] transition-colors hover:bg-[var(--accent-strong)] disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-on)] transition-colors hover:bg-[var(--accent-strong)] disabled:opacity-50"
           >
+            {busy && !quote && <Spinner />}
             Get quote
           </button>
 
@@ -235,7 +326,15 @@ export default function AppPage() {
             <div className="flex flex-col gap-2 rounded-lg border border-[var(--line)] bg-[var(--background)] p-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">You receive</span>
-                <span className="font-mono text-[var(--foreground)]">{quote.outAmount}</span>
+                <span className="text-right font-mono text-[var(--foreground)]">
+                  {outputInfo ? formatTokenAmount(quote.outAmount, outputInfo.decimals) : quote.outAmount}{" "}
+                  {outputInfo?.symbol}
+                  {outputInfo?.usdPrice && (
+                    <span className="ml-1 text-[var(--muted)]">
+                      ({formatUsd((Number(quote.outAmount) / 10 ** outputInfo.decimals) * outputInfo.usdPrice)})
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">Price impact</span>
@@ -285,8 +384,9 @@ export default function AppPage() {
             <button
               onClick={handleSwap}
               disabled={busy || !canSwap}
-              className="rounded-lg border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:bg-[var(--accent-soft)] disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:bg-[var(--accent-soft)] disabled:opacity-50"
             >
+              {busy && <Spinner />}
               Sign &amp; swap
             </button>
           )}
@@ -295,9 +395,28 @@ export default function AppPage() {
             <p className="text-xs text-[var(--muted)]">Connect a wallet to sign this swap.</p>
           )}
 
-          {status && <p className="text-xs text-[var(--muted)]">{status}</p>}
+          {status && status !== "Confirmed." && <p className="text-xs text-[var(--muted)]">{status}</p>}
 
-          {signature && (
+          {signature && status === "Confirmed." && (
+            <div className="flex items-center gap-3 rounded-lg border border-[var(--accent)] bg-[var(--accent-soft)] p-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-on)]">
+                ✓
+              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-[var(--accent-strong)]">Swap confirmed</span>
+                <a
+                  className="text-xs font-medium text-[var(--accent-strong)] underline underline-offset-2"
+                  href={`https://solscan.io/tx/${signature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View on Solscan
+                </a>
+              </div>
+            </div>
+          )}
+
+          {signature && status !== "Confirmed." && (
             <a
               className="text-xs font-medium text-[var(--accent-strong)] underline underline-offset-2"
               href={`https://solscan.io/tx/${signature}`}
@@ -316,11 +435,17 @@ export default function AppPage() {
             <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--line)] bg-[var(--background)] p-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">Quoted out</span>
-                <span className="font-mono text-[var(--foreground)]">{mevResult.quotedOutAmount}</span>
+                <span className="font-mono text-[var(--foreground)]">
+                  {outputInfo ? formatTokenAmount(mevResult.quotedOutAmount, outputInfo.decimals) : mevResult.quotedOutAmount}{" "}
+                  {outputInfo?.symbol}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">Realized out</span>
-                <span className="font-mono text-[var(--foreground)]">{mevResult.realizedOutAmount}</span>
+                <span className="font-mono text-[var(--foreground)]">
+                  {outputInfo ? formatTokenAmount(mevResult.realizedOutAmount, outputInfo.decimals) : mevResult.realizedOutAmount}{" "}
+                  {outputInfo?.symbol}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">Delta vs quote</span>

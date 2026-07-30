@@ -89,8 +89,20 @@ export default function LandingPage() {
 
       <main className="flex flex-col">
         {/* Hero */}
-        <section className="border-b border-[var(--line)]">
-          <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-16 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:px-12 lg:py-28">
+        <section className="relative overflow-hidden border-b border-[var(--line)]">
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute inset-0 h-full w-full text-[var(--line)] opacity-60"
+          >
+            <defs>
+              <pattern id="hero-dots" width="28" height="28" patternUnits="userSpaceOnUse">
+                <circle cx="1.5" cy="1.5" r="1.5" fill="currentColor" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hero-dots)" />
+          </svg>
+
+          <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-16 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:px-12 lg:py-28">
             <Reveal className="flex flex-col gap-7">
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
                 Every swap, checked before you sign
@@ -126,18 +138,36 @@ export default function LandingPage() {
               </div>
             </Reveal>
 
-            <Reveal
-              delayMs={150}
-              className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] lg:aspect-square"
-            >
-              <Image
-                src="/logo.jpeg"
-                alt="Vera — safety-scoring swap router"
-                fill
-                priority
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 45vw"
-              />
+            <Reveal delayMs={150} className="relative">
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-[0_0_80px_-20px_var(--accent)] lg:aspect-square">
+                <Image
+                  src="/logo.jpeg"
+                  alt="Vera — safety-scoring swap router"
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 45vw"
+                />
+              </div>
+
+              <div className="absolute -bottom-6 -left-6 w-56 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 font-mono text-xs shadow-lg sm:w-64">
+                <p className="mb-2 flex items-center justify-between text-[var(--muted)]">
+                  <span>Live check</span>
+                  <span className="text-[var(--accent-strong)]">●</span>
+                </p>
+                <p className="flex items-center justify-between text-[var(--foreground)]">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[var(--accent-strong)]">✓</span> Freeze authority
+                  </span>
+                  <span className="text-[var(--muted)]">revoked</span>
+                </p>
+                <p className="mt-1.5 flex items-center justify-between text-[var(--foreground)]">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[var(--accent-strong)]">✓</span> Mint authority
+                  </span>
+                  <span className="text-[var(--muted)]">revoked</span>
+                </p>
+              </div>
             </Reveal>
           </div>
         </section>

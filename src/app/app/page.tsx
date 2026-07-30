@@ -77,6 +77,13 @@ function extractErrorMessage(err: unknown): string {
   return "Swap failed.";
 }
 
+const POPULAR_TOKENS = [
+  { symbol: "BONK", mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" },
+  { symbol: "JUP", mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" },
+  { symbol: "USDC", mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
+  { symbol: "WIF", mint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm" },
+];
+
 function Spinner() {
   return (
     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -129,7 +136,8 @@ export default function AppPage() {
     };
   }, [connection, publicKey, signature]);
 
-  async function handleGetQuote() {
+  async function handleGetQuote(mintOverride?: string) {
+    const targetMint = mintOverride ?? outputMint;
     setStatus(null);
     setSignature(null);
     setQuote(null);
@@ -138,12 +146,12 @@ export default function AppPage() {
     setAckRisk(false);
     setMevResult(null);
     setOutputInfo(null);
-    if (!outputMint) {
+    if (!targetMint) {
       setStatus("Paste a token mint address first.");
       return;
     }
     try {
-      new PublicKey(outputMint);
+      new PublicKey(targetMint);
     } catch {
       setStatus("That doesn't look like a valid mint address.");
       return;
@@ -158,20 +166,22 @@ export default function AppPage() {
       return;
     }
 
+    if (mintOverride) setOutputMint(mintOverride);
+
     setBusy(true);
     setScoring(true);
 
     const amountLamports = Math.round(parseFloat(amountSol) * LAMPORTS_PER_SOL);
 
     // Quote and score fire together — the score panel never waits behind the quote.
-    const quotePromise = getQuote({ inputMint: SOL_MINT, outputMint, amountLamports, includePlatformFee: true })
+    const quotePromise = getQuote({ inputMint: SOL_MINT, outputMint: targetMint, amountLamports, includePlatformFee: true })
       .then(setQuote)
       .catch((err) => setStatus(err instanceof Error ? err.message : "Failed to fetch quote."))
       .finally(() => setBusy(false));
 
-    getTokenInfo(outputMint).then(setOutputInfo);
+    getTokenInfo(targetMint).then(setOutputInfo);
 
-    const scorePromise = fetch(`/api/score/${outputMint}`)
+    const scorePromise = fetch(`/api/score/${targetMint}`)
       .then(async (res) => {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Failed to score mint.");
@@ -319,10 +329,24 @@ export default function AppPage() {
                 <span className="text-xs text-[var(--muted)]">{outputInfo.name}</span>
               </div>
             )}
+            {!outputMint && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {POPULAR_TOKENS.map((token) => (
+                  <button
+                    key={token.mint}
+                    type="button"
+                    onClick={() => handleGetQuote(token.mint)}
+                    className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
+                  >
+                    {token.symbol}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
-            onClick={handleGetQuote}
+            onClick={() => handleGetQuote()}
             disabled={busy}
             className="flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-on)] transition-colors hover:bg-[var(--accent-strong)] disabled:opacity-50"
           >

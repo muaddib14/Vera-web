@@ -21,8 +21,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "VERA — Safety-Scoring Swap Router",
-  description: "Swap on Solana with a rug-check score rendered alongside every quote.",
+  title: "VERA — See the rug before you sign",
+  description:
+    "A Solana swap router that checks freeze authority, mint authority, LP lock, and holder concentration inline with your quote — not a score, a verifiable checklist.",
 };
 
 export default function RootLayout({

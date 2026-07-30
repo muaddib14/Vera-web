@@ -1,6 +1,7 @@
 import Image from "next/image";
 import LaunchButton from "@/components/LaunchButton";
 import Reveal from "@/components/Reveal";
+import AppDemo from "@/components/AppDemo";
 
 const CHECKLIST = [
   { label: "Freeze authority", value: "Cxk9…4tRp", state: "fail" as const, note: "can block your sell" },
@@ -24,55 +25,73 @@ const STATE_MARK: Record<string, string> = {
 };
 
 const CTA =
-  "rounded-md bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--accent-on)] transition-colors hover:bg-[var(--accent-strong)]";
+  "inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--accent-on)] transition-colors hover:bg-[var(--accent-strong)]";
+
+const CTA_GHOST =
+  "inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:text-[var(--accent)]";
 
 const DISPLAY = "font-[family-name:var(--font-display)]";
 
 const STATS = [
-  { value: "4", label: "hard-kill checks" },
-  { value: "<1s", label: "score renders with quote" },
-  { value: "0", label: "custody of your funds" },
+  { value: "4", label: "checks that can veto a swap" },
+  { value: "<1s", label: "added to your quote — not instead of it" },
+  { value: "0", label: "wallets we ever touch" },
+];
+
+const STACK = ["Jupiter", "Helius", "Jito", "Solana", "SPL Token-2022", "Solscan"];
+
+const FLOW_STEPS = [
+  { n: "01", title: "Paste a mint", body: "The same first move as any swap screen — nothing new to remember." },
+  {
+    n: "02",
+    title: "Quote and checklist render together",
+    body: "One request, two answers. The safety read never trails behind the price.",
+  },
+  {
+    n: "03",
+    title: "A red flag needs your confirm",
+    body: "Clean tokens sign in one click. A hard-kill signal stops you and makes you say yes twice.",
+  },
 ];
 
 const FEATURES = [
   {
     n: "01",
-    title: "MEV-protected routing",
-    body: "Optional Jito bundle submission sends your swap straight to a validator, skipping the public mempool a sandwich bot reads. You see the realized fill vs. the quote, not an advertised multiplier.",
-    featured: true,
+    title: "LP lock, actually verified",
+    body: "We decode the real Raydium AMM v4 pool account and check whether the LP tokens sit at the burn address — not a badge someone self-reported.",
   },
   {
     n: "02",
     title: "Freeze & mint authority",
-    body: "Reads the SPL mint account directly. If the deployer can still freeze your wallet or print more supply, you see it before you sign.",
+    body: "Read straight off the SPL mint account. If the deployer can still freeze your wallet or print more supply, you see it before you sign — not after.",
   },
   {
     n: "03",
     title: "Token-2022 aware",
-    body: "Permanent delegate and transfer hook extensions checked too — tricks a legacy scanner would miss entirely.",
+    body: "Permanent delegate and transfer hook extensions checked too — the exact tricks a legacy scanner built for the old token program never sees.",
   },
   {
     n: "04",
-    title: "Holder concentration",
-    body: "Top 10 holders as a percentage of supply, with recognized liquidity-pool accounts excluded.",
+    title: "Holder concentration, minus the noise",
+    body: "Top 10 holders as a percentage of supply, with recognized liquidity-pool accounts excluded so the number isn't inflated by the pool itself.",
   },
   {
     n: "05",
-    title: "Metadata & age signals",
-    body: "Whether the token's name/image can still change, and how long it's actually been trading — pulled live.",
+    title: "MEV-protected routing",
+    body: "Optional Jito bundle submission skips the public mempool a sandwich bot reads. You get the realized fill vs. the quote — a measured number, not an advertised multiplier.",
   },
   {
     n: "06",
     title: "Non-custodial, always",
-    body: "Every check is disclosure. Every transaction is signed by your wallet, and only your wallet.",
+    body: "Every check is disclosure, never a gate. Every transaction is signed by your wallet, and only your wallet.",
   },
 ];
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col flex-1 bg-[var(--background)] font-sans">
-      <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--background)]/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 lg:px-12">
+      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--background)]/85 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4 lg:px-12">
           <div className="flex items-center gap-2.5">
             <Image
               src="/logo.jpeg"
@@ -88,172 +107,135 @@ export default function LandingPage() {
       </header>
 
       <main className="flex flex-col">
-        {/* Hero */}
-        <section className="relative overflow-hidden border-b border-[var(--line)]">
-          <svg
-            aria-hidden
-            className="pointer-events-none absolute inset-0 h-full w-full text-[var(--line)] opacity-60"
-          >
-            <defs>
-              <pattern id="hero-dots" width="28" height="28" patternUnits="userSpaceOnUse">
-                <circle cx="1.5" cy="1.5" r="1.5" fill="currentColor" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hero-dots)" />
-          </svg>
-
-          <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-16 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:px-12 lg:py-28">
-            <Reveal className="flex flex-col gap-7">
+        {/* Hero — wormhole.com: big display headline + dot texture + diamond field */}
+        <section className="bg-dots relative flex min-h-[calc(100svh-73px)] overflow-hidden border-b border-[var(--line)]">
+          <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col justify-center gap-14 px-6 py-24 lg:px-12 lg:py-32">
+            <Reveal className="flex max-w-3xl flex-col gap-7">
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
                 Every swap, checked before you sign
               </p>
-              <h1
-                className={`${DISPLAY} text-5xl leading-[1.05] tracking-tight text-[var(--foreground)] sm:text-6xl lg:text-7xl`}
-              >
-                See the rug
+              <h1 className={`${DISPLAY} text-5xl leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl`}>
+                <span className="text-[var(--foreground)]">See the rug</span>
                 <br />
-                <span className="italic text-[var(--accent-strong)]">before it sees you.</span>
+                <span className="text-[var(--muted)]">before it sees you.</span>
               </h1>
-              <p className="max-w-lg text-lg text-[var(--muted)]">
-                Every Solana swap screen shows you a price. None of them show you whether the
-                token can freeze your wallet or drain the pool before you sign. This one does —
-                inline, in the time it takes to fetch your quote.
+              <p className="max-w-xl text-lg text-[var(--muted)]">
+                Your swap screen shows you a price. It doesn&apos;t show you whether the deployer
+                can still freeze your wallet, print more supply, or pull the pool out from
+                under you. This one runs that check inline — no separate tab, no extra wait.
               </p>
-              <div className="flex flex-wrap items-center gap-5 pt-2">
+              <div className="flex flex-wrap items-center gap-6 pt-2">
                 <LaunchButton className={CTA}>Launch app &amp; connect wallet</LaunchButton>
                 <span className="text-sm text-[var(--muted)]">
                   Non-custodial. Your keys never leave your wallet.
                 </span>
               </div>
-
-              <div className="mt-4 flex flex-wrap gap-x-10 gap-y-4 border-t border-[var(--line)] pt-6">
-                {STATS.map((stat) => (
-                  <div key={stat.label} className="flex flex-col">
-                    <span className={`${DISPLAY} text-3xl tabular-nums text-[var(--foreground)]`}>
-                      {stat.value}
-                    </span>
-                    <span className="text-xs text-[var(--muted)]">{stat.label}</span>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
-
-            <Reveal delayMs={150} className="relative">
-              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-[0_0_80px_-20px_var(--accent)] lg:aspect-square">
-                <Image
-                  src="/logo.jpeg"
-                  alt="Vera — safety-scoring swap router"
-                  fill
-                  priority
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 45vw"
-                />
-              </div>
-
-              <div className="absolute -bottom-6 -left-6 w-56 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 font-mono text-xs shadow-lg sm:w-64">
-                <p className="mb-2 flex items-center justify-between text-[var(--muted)]">
-                  <span>Live check</span>
-                  <span className="text-[var(--accent-strong)]">●</span>
-                </p>
-                <p className="flex items-center justify-between text-[var(--foreground)]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-[var(--accent-strong)]">✓</span> Freeze authority
-                  </span>
-                  <span className="text-[var(--muted)]">revoked</span>
-                </p>
-                <p className="mt-1.5 flex items-center justify-between text-[var(--foreground)]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-[var(--accent-strong)]">✓</span> Mint authority
-                  </span>
-                  <span className="text-[var(--muted)]">revoked</span>
-                </p>
-              </div>
             </Reveal>
           </div>
         </section>
 
-        {/* Flow */}
-        <section className="border-b border-[var(--line)] bg-[var(--surface)]">
+        {/* Trust marquee */}
+        <section className="overflow-hidden border-b border-[var(--line)] bg-[var(--surface)] py-6">
+         
+          <div className="marquee-track gap-16">
+            {[...STACK, ...STACK, ...STACK, ...STACK].map((name, i) => (
+              <span
+                key={`${name}-${i}`}
+                className="shrink-0 text-sm font-semibold uppercase tracking-[0.1em] text-[var(--muted)]"
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* Giant stat — wormhole.com style single big number + divided row */}
+        <section className="border-b border-[var(--line)]">
           <div className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12">
-            <Reveal>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">
-                What changes
-              </h2>
+            <Reveal className="flex flex-col items-start gap-2">
+              <span className={`${DISPLAY} text-6xl tracking-tight text-[var(--foreground)] sm:text-7xl lg:text-8xl`}>
+                {STATS[0].value}
+              </span>
+              <span className="text-sm text-[var(--muted)]">{STATS[0].label}</span>
             </Reveal>
-            <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-              {[
-                { n: "01", title: "Paste a mint", body: "Same as any swap screen. No new habit to learn.", accent: false },
-                {
-                  n: "02",
-                  title: "Quote and score render together",
-                  body: "Both fire the instant you paste. The score never waits behind the quote.",
-                  accent: true,
-                },
-                {
-                  n: "03",
-                  title: "You decide, then sign",
-                  body: "A red flag needs a second confirm. It never silently blocks you.",
-                  accent: false,
-                },
-              ].map((step, i) => (
-                <Reveal key={step.n} delayMs={i * 100}>
-                  <div
-                    className={`h-full rounded-2xl border p-7 transition-colors ${
-                      step.accent
-                        ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                        : "border-[var(--line)] bg-[var(--background)] hover:border-[var(--accent)]"
-                    }`}
-                  >
-                    <p
-                      className={`font-mono text-xs ${step.accent ? "text-[var(--accent-strong)]" : "text-[var(--muted)]"}`}
-                    >
-                      {step.n}
-                    </p>
-                    <p className="mt-3 text-lg font-semibold text-[var(--foreground)]">{step.title}</p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">{step.body}</p>
-                  </div>
-                </Reveal>
+
+            <Reveal
+              delayMs={100}
+              className="mt-14 grid grid-cols-1 divide-y divide-[var(--line)] border-t border-[var(--line)] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-3"
+            >
+              {STATS.slice(1).concat(STATS[0]).map((stat) => (
+                <div key={stat.label} className="flex flex-col gap-1 px-0 py-6 sm:px-8 sm:first:pl-0">
+                  <span className={`${DISPLAY} text-3xl text-[var(--foreground)]`}>{stat.value}</span>
+                  <span className="text-xs text-[var(--muted)]">{stat.label}</span>
+                </div>
               ))}
+            </Reveal>
+          </div>
+        </section>
+
+        {/* Flow — two column: copy left, diamond field right */}
+        <section className="border-b border-[var(--line)] bg-[var(--surface)]">
+          <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="flex flex-col justify-center px-6 py-20 lg:px-12 lg:py-28">
+              <Reveal className="flex flex-col gap-4">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">
+                  What changes
+                </h2>
+                <p className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
+                  Three steps. No new habit.
+                </p>
+              </Reveal>
+
+              <div className="mt-10 flex flex-col divide-y divide-[var(--line)] border-t border-[var(--line)]">
+                {FLOW_STEPS.map((step, i) => (
+                  <Reveal key={step.n} delayMs={i * 100}>
+                    <div className="grid grid-cols-[3rem_1fr] gap-6 py-6">
+                      <span className={`${DISPLAY} text-2xl text-[var(--muted)]`}>{step.n}</span>
+                      <div>
+                        <p className="text-base font-semibold text-[var(--foreground)]">{step.title}</p>
+                        <p className="mt-1.5 text-sm text-[var(--muted)]">{step.body}</p>
+                      </div>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </div>
+
+            <div className="diamond-field relative hidden min-h-[420px] lg:block">
+              <Image
+                src="/logo.jpeg"
+                alt="VERA"
+                fill
+                className="relative z-10 object-cover"
+                sizes="(max-width: 1024px) 0px, 50vw"
+              />
             </div>
           </div>
         </section>
 
-        {/* Feature grid */}
+        {/* Feature grid — bordered flat cards */}
         <section className="border-b border-[var(--line)]">
           <div className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12 lg:py-28">
-            <Reveal>
+            <Reveal className="max-w-2xl">
               <h2 className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
                 Everything checked, every swap.
               </h2>
-              <p className="mt-3 max-w-2xl text-base text-[var(--muted)]">
+              <p className="mt-3 text-base text-[var(--muted)]">
                 One integrated router — not a bolt-on scanner you have to remember to visit
                 separately.
               </p>
             </Reveal>
-            <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((feature, i) => (
-                <Reveal key={feature.n} delayMs={i * 80} className={feature.featured ? "sm:col-span-2" : ""}>
-                  <div
-                    className={`group relative h-full overflow-hidden rounded-2xl border p-7 transition-all duration-300 hover:-translate-y-1 ${
-                      feature.featured
-                        ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                        : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--accent)]"
-                    }`}
-                  >
-                    <span
-                      aria-hidden
-                      className={`${DISPLAY} pointer-events-none absolute -right-2 -top-4 text-8xl text-[var(--foreground)] opacity-[0.04] transition-opacity duration-300 group-hover:opacity-[0.08]`}
-                    >
-                      {feature.n}
-                    </span>
-                    <p
-                      className={`relative text-lg font-semibold ${
-                        feature.featured ? "text-[var(--accent-strong)]" : "text-[var(--foreground)]"
-                      }`}
-                    >
-                      {feature.title}
-                    </p>
-                    <p className="relative mt-2 max-w-md text-sm text-[var(--muted)]">{feature.body}</p>
+                <Reveal key={feature.n} delayMs={i * 60}>
+                  <div className="card-flat card-hover flex h-full flex-col gap-5 p-8">
+                    <span className="icon-blob text-sm font-semibold">{feature.n}</span>
+                    <div className="flex flex-col gap-2.5">
+                      <p className="text-lg font-semibold leading-snug text-[var(--foreground)]">
+                        {feature.title}
+                      </p>
+                      <p className="text-sm leading-relaxed text-[var(--muted)]">{feature.body}</p>
+                    </div>
                   </div>
                 </Reveal>
               ))}
@@ -261,8 +243,29 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Product demo — immersive interactive preview */}
+        <section className="border-b border-[var(--line)] bg-[var(--surface-2)]">
+          <div className="mx-auto w-full max-w-6xl px-6 py-20 lg:px-12 lg:py-28">
+            <Reveal className="mx-auto max-w-2xl text-center">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
+                See it before you launch it
+              </h2>
+              <p className={`${DISPLAY} mt-3 text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
+                This is what renders next to your quote.
+              </p>
+              <p className="mt-3 text-base text-[var(--muted)]">
+                Same panel, three real verdicts. Tap a state to see how the checklist reacts.
+              </p>
+            </Reveal>
+
+            <Reveal delayMs={120} className="mt-12">
+              <AppDemo />
+            </Reveal>
+          </div>
+        </section>
+
         {/* Checklist preview */}
-        <section className="border-b border-[var(--line)]">
+        <section className="border-b border-[var(--line)] bg-[var(--surface)]">
           <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-16 px-6 py-20 lg:grid-cols-2 lg:items-center lg:px-12 lg:py-28">
             <Reveal className="flex flex-col gap-4">
               <h2 className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
@@ -274,16 +277,14 @@ export default function LandingPage() {
                 yourself on Solscan instead of trusting us blind.
               </p>
               <p className="text-base text-[var(--muted)]">
-                Freeze and mint authority are checked directly against the SPL mint account.
-                Holder concentration excludes recognized pool accounts. Price impact comes
-                straight from your actual trade size, not a generic liquidity figure.
+                Freeze and mint authority come straight off the SPL mint account. LP lock is
+                confirmed by decoding the actual Raydium pool, not a self-reported badge. Holder
+                concentration excludes recognized pool accounts. Price impact comes from your
+                actual trade size, not a generic liquidity figure.
               </p>
             </Reveal>
 
-            <Reveal
-              delayMs={150}
-              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-7 font-mono text-sm"
-            >
+            <Reveal delayMs={150} className="card-flat p-7 font-mono text-sm">
               <p className="mb-4 flex items-center gap-2 text-red-500">
                 <span className="motion-safe:animate-pulse">⛔</span>
                 <span className="font-semibold">CRITICAL — freeze authority is live</span>
@@ -295,9 +296,9 @@ export default function LandingPage() {
                       <span className={STATE_STYLE[row.state]}>{STATE_MARK[row.state]}</span>
                       {row.label}
                     </span>
-                    <span className="text-right text-[var(--muted)]">
-                      <span className="text-[var(--foreground)]">{row.value}</span>
-                      <span className="hidden lg:inline"> · {row.note}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="value-pill">{row.value}</span>
+                      <span className="hidden text-[var(--muted)] lg:inline">{row.note}</span>
                     </span>
                   </li>
                 ))}
@@ -307,7 +308,7 @@ export default function LandingPage() {
         </section>
 
         {/* MEV protection */}
-        <section className="border-b border-[var(--line)] bg-[var(--surface)]">
+        <section className="border-b border-[var(--line)]">
           <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-16 px-6 py-20 lg:grid-cols-2 lg:items-center lg:px-12 lg:py-28">
             <Reveal className="flex flex-col gap-4 lg:order-2">
               <h2 className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
@@ -324,10 +325,7 @@ export default function LandingPage() {
               </p>
             </Reveal>
 
-            <Reveal
-              delayMs={150}
-              className="rounded-2xl border border-[var(--line)] bg-[var(--background)] p-7 font-mono text-sm lg:order-1"
-            >
+            <Reveal delayMs={150} className="card-flat p-7 font-mono text-sm lg:order-1">
               <p className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
                 Realized vs. quoted
               </p>
@@ -357,24 +355,26 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-7xl px-6 py-16 lg:px-12">
             <Reveal>
               <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
-                What this is not
+                No custody. No exceptions.
               </h2>
               <p className="mt-3 max-w-3xl text-base text-[var(--muted)]">
-                No custody, no shielded transfers, no internal ledger. Your wallet signs every
-                transaction directly — funds never touch this app. A score is a snapshot, not a
-                guarantee: a clean token today can still change tomorrow. Disclosure, not
-                financial advice.
+                We never hold your funds, run a shielded transfer, or keep an internal ledger —
+                your wallet signs every transaction directly. And a clean checklist is a
+                snapshot, not a guarantee: a token that passes today can still change tomorrow.
+                This is disclosure, not financial advice.
               </p>
             </Reveal>
           </div>
         </section>
 
-        {/* Final CTA */}
+        {/* Final CTA — soft teal band, wormhole footer-CTA pattern */}
         <section>
-          <div className="mx-auto flex w-full max-w-7xl flex-col items-start gap-6 px-6 py-20 lg:px-12 lg:py-28">
-            <Reveal className="flex flex-col items-start gap-6">
-              <h2 className={`${DISPLAY} text-3xl italic tracking-tight text-[var(--foreground)] lg:text-4xl`}>
-                Paste a mint. See what you&apos;re signing.
+          <div className="mx-auto w-full max-w-7xl px-6 py-14 lg:px-12">
+            <Reveal className="flex flex-col items-start justify-between gap-8 rounded-2xl bg-[var(--accent-soft)] px-8 py-12 sm:flex-row sm:items-center lg:px-14">
+              <h2 className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
+                Paste a mint.
+                <br />
+                See what you&apos;re signing.
               </h2>
               <LaunchButton className={CTA}>Launch app &amp; connect wallet</LaunchButton>
             </Reveal>
@@ -383,9 +383,14 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-[var(--line)]">
-        <div className="mx-auto w-full max-w-7xl px-6 py-8 text-xs text-[var(--muted)] lg:px-12">
-          VERA — swap routing via Jupiter, on-chain reads via Helius, MEV-protected
-          submission via Jito.
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-6 py-8 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between lg:px-12">
+          <span>
+            VERA checks freeze authority, mint authority, LP lock, and holder concentration
+            live — via Jupiter, Helius, Jito, and Solana. Verify any of it yourself on Solscan.
+          </span>
+          <a href="#" className={CTA_GHOST}>
+            Back to top ↑
+          </a>
         </div>
       </footer>
     </div>

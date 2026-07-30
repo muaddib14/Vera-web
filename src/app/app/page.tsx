@@ -93,8 +93,6 @@ function Spinner() {
   );
 }
 
-const INPUT =
-  "rounded-lg border border-[var(--line)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[var(--accent)]";
 const LABEL = "text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]";
 
 export default function AppPage() {
@@ -123,10 +121,7 @@ export default function AppPage() {
   }, []);
 
   useEffect(() => {
-    if (!publicKey) {
-      setSolBalance(null);
-      return;
-    }
+    if (!publicKey) return;
     let cancelled = false;
     connection.getBalance(publicKey).then((lamports) => {
       if (!cancelled) setSolBalance(lamports / LAMPORTS_PER_SOL);
@@ -251,7 +246,9 @@ export default function AppPage() {
   const canSwap = quote && publicKey && !needsAck;
 
   return (
-    <div className="flex flex-1 flex-col bg-[var(--background)] font-sans">
+    <div className="app-shell flex flex-1 flex-col font-sans">
+      
+
       <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--background)]/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5 lg:px-10">
           <Link href="/" className="flex items-center gap-2.5">
@@ -264,14 +261,25 @@ export default function AppPage() {
             />
             <span className="text-base font-semibold tracking-tight">VERA</span>
           </Link>
-          <WalletMultiButton />
+          <div className="flex items-center gap-3">
+            <span className="status-pill hidden sm:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+              Live
+            </span>
+            <WalletMultiButton />
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-6 py-12 lg:flex-row lg:items-start lg:gap-12 lg:px-10 lg:py-16">
+      <main className="console-grid mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center gap-6 px-6 py-12 lg:flex-row lg:items-start lg:gap-6 lg:px-10 lg:py-16">
         {/* Trade panel */}
-        <section className="flex w-full flex-col gap-5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-7 lg:w-[26rem] lg:shrink-0">
-          <h1 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">Trade</h1>
+        <section className="card-flat flex w-full flex-col gap-5 p-7 lg:w-[26rem] lg:shrink-0">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Router</p>
+            <h1 className={`font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--foreground)]`}>
+              Trade
+            </h1>
+          </div>
 
           <div className="rounded-lg border border-[var(--line)] bg-[var(--background)] p-4">
             <div className="flex items-center justify-between">
@@ -280,9 +288,10 @@ export default function AppPage() {
                 <button
                   type="button"
                   onClick={() => solBalance !== null && setAmountSol(String(Math.max(solBalance - 0.01, 0)))}
-                  className="text-xs font-medium text-[var(--accent-strong)] hover:underline"
+                  className="text-xs font-medium text-[var(--muted)] hover:text-[var(--accent-strong)] hover:underline"
                 >
-                  Balance: {solBalance !== null ? solBalance.toFixed(4) : "—"} SOL · Max
+                  Balance: {solBalance !== null ? solBalance.toFixed(4) : "—"} SOL{" "}
+                  <span className="text-[var(--accent-strong)]">Max</span>
                 </button>
               )}
             </div>
@@ -496,13 +505,42 @@ export default function AppPage() {
         </section>
 
         {/* Score panel */}
-        <section className="flex w-full flex-1 flex-col gap-5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-7 lg:sticky lg:top-24">
-          <h2 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">Safety score</h2>
+        <section className="card-flat flex w-full flex-1 flex-col gap-5 p-7 lg:sticky lg:top-24">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Checklist</p>
+            <h2 className={`font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--foreground)]`}>
+              Safety score
+            </h2>
+          </div>
 
           {!scoring && !score && !scoreError && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--line)] px-6 py-16 text-center">
-              <p className="text-sm text-[var(--muted)]">
-                Paste a mint and get a quote — the score renders here, in parallel.
+            <div className="flex flex-1 flex-col gap-4">
+              <div className="pointer-events-none select-none opacity-40 blur-[0.5px]">
+                <p className="mb-3 rounded-lg border border-[var(--line)] bg-[var(--background)] px-4 py-3 text-sm font-semibold text-[var(--muted)]">
+                  No hard-kill signals found
+                </p>
+                <ul className="flex flex-col divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--background)] font-mono text-sm">
+                  {[
+                    ["✓", "Freeze authority", "cannot freeze your account", "revoked"],
+                    ["✓", "Mint authority", "supply is fixed", "revoked"],
+                    ["!", "Top 10 holders", "of supply, pools excluded", "34.2%"],
+                    ["✓", "Liquidity depth", "price impact at this trade size", "0.4% impact"],
+                  ].map(([mark, label, note, value]) => (
+                    <li key={label} className="flex items-center justify-between gap-4 px-4 py-3">
+                      <span className="flex items-start gap-2.5 text-[var(--foreground)]">
+                        <span className="w-3 shrink-0 text-center text-[var(--accent-strong)]">{mark}</span>
+                        <span className="flex flex-col">
+                          <span className="font-sans">{label}</span>
+                          <span className="font-sans text-xs text-[var(--muted)]">{note}</span>
+                        </span>
+                      </span>
+                      <span className="value-pill shrink-0 text-right">{value}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <p className="text-center text-xs text-[var(--muted)]">
+                Example only — paste a mint on the left to run the real check.
               </p>
             </div>
           )}
@@ -529,16 +567,19 @@ export default function AppPage() {
                 {VERDICT_BANNER[score.verdict].text}
               </p>
 
-              <ul className="flex flex-col divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] font-mono text-sm">
+              <ul className="flex flex-col divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--background)] font-mono text-sm">
                 {score.lines.map((line) => (
-                  <li key={line.key} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="flex items-center gap-2.5 text-[var(--foreground)]">
-                      <span className={`w-3 text-center ${STATE_STYLE[line.state]}`}>
+                  <li key={line.key} className="flex items-center justify-between gap-4 px-4 py-3">
+                    <span className="flex items-start gap-2.5 text-[var(--foreground)]">
+                      <span className={`w-3 shrink-0 text-center ${STATE_STYLE[line.state]}`}>
                         {STATE_MARK[line.state]}
                       </span>
-                      <span className="font-sans">{line.label}</span>
+                      <span className="flex flex-col">
+                        <span className="font-sans">{line.label}</span>
+                        <span className="font-sans text-xs text-[var(--muted)]">{line.note}</span>
+                      </span>
                     </span>
-                    <span className="text-right text-[var(--foreground)]">{line.value}</span>
+                    <span className="value-pill shrink-0 text-right">{line.value}</span>
                   </li>
                 ))}
               </ul>

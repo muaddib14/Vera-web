@@ -2,10 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
+
+// wallet-adapter's button renders differently once it detects an installed
+// wallet extension client-side, which never matches the server-rendered
+// markup — SSR-ing it always trips a hydration mismatch. Client-only fixes it.
+const WalletMultiButton = dynamic(
+  () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
+  { ssr: false }
+);
 import bs58 from "bs58";
 import {
   PLATFORM_FEE_BPS,

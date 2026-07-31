@@ -42,20 +42,38 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* App console shell — always dark, same brand-teal family as the marketing
-   site's dark-mode palette, forced regardless of system theme (wormhole.com's
-   app dashboard is always dark, not tied to prefers-color-scheme). */
+/* Marketing site — always light, matching wormhole.com's default surface
+   regardless of OS theme. The app console (below) is the opposite: always
+   dark. Different products, different defaults, both deliberate. */
+.landing-light {
+  --background: #f4f7f6;
+  --surface: #ffffff;
+  --surface-2: #eaf1ef;
+  --foreground: #0d1512;
+  --muted: #4c5f58;
+  --line: #d3ded9;
+  --accent: #0e9c78;
+  --accent-strong: #0a7a5e;
+  --accent-soft: #d8f3e9;
+  --accent-on: #ffffff;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* App console shell — same light surface as the marketing site, forced
+   regardless of system theme so the tool never looks disconnected from the
+   brand it's launched from. */
 .app-shell {
-  --background: #0a0e0d;
-  --surface: #101613;
-  --surface-2: #151d19;
-  --foreground: #e8f2ee;
-  --muted: #8ea89e;
-  --line: #22302a;
-  --accent: #1fd9a3;
-  --accent-strong: #59f0c2;
-  --accent-soft: #12261f;
-  --accent-on: #061510;
+  --background: #f4f7f6;
+  --surface: #ffffff;
+  --surface-2: #eaf1ef;
+  --foreground: #0d1512;
+  --muted: #4c5f58;
+  --line: #d3ded9;
+  --accent: #0e9c78;
+  --accent-strong: #0a7a5e;
+  --accent-soft: #d8f3e9;
+  --accent-on: #ffffff;
   background: var(--background);
   color: var(--foreground);
 }

@@ -6,10 +6,6 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
-
-// wallet-adapter's button renders differently once it detects an installed
-// wallet extension client-side, which never matches the server-rendered
-// markup — SSR-ing it always trips a hydration mismatch. Client-only fixes it.
 const WalletMultiButton = dynamic(
   () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
   { ssr: false }
@@ -64,9 +60,6 @@ const VERDICT_BANNER: Record<ScoreResult["verdict"], { text: string; cls: string
   },
 };
 
-// wallet-adapter wraps real RPC/simulation failures in a generic
-// "WalletSendTransactionError: Unexpected error" — the actual cause is
-// usually attached as `.error` on the wrapper. Surface that instead.
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === "object" && "error" in err) {
     const cause = (err as { error?: unknown }).error;

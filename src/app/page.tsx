@@ -1,20 +1,19 @@
 import Image from "next/image";
 import LaunchButton from "@/components/LaunchButton";
 import Reveal from "@/components/Reveal";
-import AppDemo from "@/components/AppDemo";
 
 const CHECKLIST = [
   { label: "Freeze authority", value: "Cxk9…4tRp", state: "fail" as const, note: "can block your sell" },
   { label: "Mint authority", value: "revoked", state: "pass" as const, note: "supply is fixed" },
   { label: "Permanent delegate", value: "none", state: "pass" as const, note: "no forced transfers" },
+  { label: "LP lock/burn", value: "unverified", state: "warn" as const, note: "pool decoded, lock not confirmed" },
   { label: "Top 10 holders", value: "41%", state: "warn" as const, note: "of supply, pools excluded" },
-  { label: "Your trade impact", value: "-6.2%", state: "warn" as const, note: "price impact at this size" },
   { label: "Token age", value: "14 days", state: "pass" as const, note: "past the riskiest window" },
 ];
 
 const STATE_STYLE: Record<string, string> = {
   fail: "text-red-500",
-  warn: "text-[var(--accent-strong)] opacity-80",
+  warn: "text-amber-600",
   pass: "text-[var(--accent-strong)]",
 };
 
@@ -33,55 +32,36 @@ const CTA_GHOST =
 const DISPLAY = "font-[family-name:var(--font-display)]";
 
 const STATS = [
-  { value: "4", label: "checks that can veto a swap" },
+  { value: "4", label: "on-chain checks that can veto a swap" },
   { value: "<1s", label: "added to your quote — not instead of it" },
-  { value: "0", label: "wallets we ever touch" },
+  { value: "0", label: "wallets this app ever touches" },
 ];
 
 const STACK = ["Jupiter", "Helius", "Jito", "Solana", "SPL Token-2022", "Solscan"];
 
-const FLOW_STEPS = [
-  { n: "01", title: "Paste a mint", body: "The same first move as any swap screen — nothing new to remember." },
+const FEATURES: { title: string; body: string; wide?: boolean }[] = [
   {
-    n: "02",
-    title: "Quote and checklist render together",
-    body: "One request, two answers. The safety read never trails behind the price.",
-  },
-  {
-    n: "03",
-    title: "A red flag needs your confirm",
-    body: "Clean tokens sign in one click. A hard-kill signal stops you and makes you say yes twice.",
-  },
-];
-
-const FEATURES = [
-  {
-    n: "01",
     title: "LP lock, actually verified",
     body: "We decode the real Raydium AMM v4 pool account and check whether the LP tokens sit at the burn address — not a badge someone self-reported.",
   },
   {
-    n: "02",
     title: "Freeze & mint authority",
     body: "Read straight off the SPL mint account. If the deployer can still freeze your wallet or print more supply, you see it before you sign — not after.",
   },
   {
-    n: "03",
     title: "Token-2022 aware",
     body: "Permanent delegate and transfer hook extensions checked too — the exact tricks a legacy scanner built for the old token program never sees.",
   },
   {
-    n: "04",
+    title: "MEV-protected routing",
+    body: "Optional Jito bundle submission skips the public mempool a sandwich bot reads. You get the realized fill vs. the quote — a measured number, not an advertised multiplier.",
+    wide: true,
+  },
+  {
     title: "Holder concentration, minus the noise",
     body: "Top 10 holders as a percentage of supply, with recognized liquidity-pool accounts excluded so the number isn't inflated by the pool itself.",
   },
   {
-    n: "05",
-    title: "MEV-protected routing",
-    body: "Optional Jito bundle submission skips the public mempool a sandwich bot reads. You get the realized fill vs. the quote — a measured number, not an advertised multiplier.",
-  },
-  {
-    n: "06",
     title: "Non-custodial, always",
     body: "Every check is disclosure, never a gate. Every transaction is signed by your wallet, and only your wallet.",
   },
@@ -89,17 +69,11 @@ const FEATURES = [
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 bg-[var(--background)] font-sans">
+    <div className="landing-light flex flex-col flex-1 font-sans">
       <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--background)]/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4 lg:px-12">
           <div className="flex items-center gap-2.5">
-            <Image
-              src="/logo.jpeg"
-              alt="VERA"
-              width={28}
-              height={28}
-              className="rounded-full object-cover"
-            />
+            <Image src="/logo.jpeg" alt="VERA" width={28} height={28} className="rounded-full object-cover" />
             <span className="text-base font-semibold tracking-tight">VERA</span>
           </div>
           <LaunchButton className={CTA}>Launch app</LaunchButton>
@@ -107,13 +81,10 @@ export default function LandingPage() {
       </header>
 
       <main className="flex flex-col">
-        {/* Hero — wormhole.com: big display headline + dot texture + diamond field */}
+        {/* Hero — wormhole.com: big two-tone headline over a dot field */}
         <section className="bg-dots relative flex min-h-[calc(100svh-73px)] overflow-hidden border-b border-[var(--line)]">
           <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col justify-center gap-14 px-6 py-24 lg:px-12 lg:py-32">
             <Reveal className="flex max-w-3xl flex-col gap-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
-                Every swap, checked before you sign
-              </p>
               <h1 className={`${DISPLAY} text-5xl leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl`}>
                 <span className="text-[var(--foreground)]">See the rug</span>
                 <br />
@@ -122,27 +93,24 @@ export default function LandingPage() {
               <p className="max-w-xl text-lg text-[var(--muted)]">
                 Your swap screen shows you a price. It doesn&apos;t show you whether the deployer
                 can still freeze your wallet, print more supply, or pull the pool out from
-                under you. This one runs that check inline — no separate tab, no extra wait.
+                under you. VERA runs that check inline — no separate tab, no extra wait.
               </p>
               <div className="flex flex-wrap items-center gap-6 pt-2">
                 <LaunchButton className={CTA}>Launch app &amp; connect wallet</LaunchButton>
-                <span className="text-sm text-[var(--muted)]">
-                  Non-custodial. Your keys never leave your wallet.
-                </span>
+                <a href="#checklist" className={CTA_GHOST}>
+                  See the checklist ↓
+                </a>
               </div>
             </Reveal>
           </div>
         </section>
 
-        {/* Trust marquee */}
+        {/* Trust marquee — the real infrastructure this reads and routes through */}
         <section className="overflow-hidden border-b border-[var(--line)] bg-[var(--surface)] py-6">
          
           <div className="marquee-track gap-16">
             {[...STACK, ...STACK, ...STACK, ...STACK].map((name, i) => (
-              <span
-                key={`${name}-${i}`}
-                className="shrink-0 text-sm font-semibold uppercase tracking-[0.1em] text-[var(--muted)]"
-              >
+              <span key={`${name}-${i}`} className="shrink-0 text-sm font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
                 {name}
               </span>
             ))}
@@ -173,32 +141,24 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Flow — two column: copy left, diamond field right */}
+        {/* Two column — wormhole.com "Connecting every market" pattern */}
         <section className="border-b border-[var(--line)] bg-[var(--surface)]">
           <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="flex flex-col justify-center px-6 py-20 lg:px-12 lg:py-28">
               <Reveal className="flex flex-col gap-4">
-                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">
-                  What changes
-                </h2>
                 <p className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
-                  Three steps. No new habit.
+                  Every mint gets the same read.
+                </p>
+                <p className="max-w-md text-base text-[var(--muted)]">
+                  Paste an address and both requests fire together: Jupiter prices the trade,
+                  while VERA reads the mint account, the pool, and the holder list directly
+                  off-chain state. Neither one waits for the other.
+                </p>
+                <p className="max-w-md text-base text-[var(--muted)]">
+                  A hard-kill signal — live freeze authority, live mint authority — stops the
+                  swap button until you say, explicitly, that you understand the risk.
                 </p>
               </Reveal>
-
-              <div className="mt-10 flex flex-col divide-y divide-[var(--line)] border-t border-[var(--line)]">
-                {FLOW_STEPS.map((step, i) => (
-                  <Reveal key={step.n} delayMs={i * 100}>
-                    <div className="grid grid-cols-[3rem_1fr] gap-6 py-6">
-                      <span className={`${DISPLAY} text-2xl text-[var(--muted)]`}>{step.n}</span>
-                      <div>
-                        <p className="text-base font-semibold text-[var(--foreground)]">{step.title}</p>
-                        <p className="mt-1.5 text-sm text-[var(--muted)]">{step.body}</p>
-                      </div>
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
             </div>
 
             <div className="diamond-field relative hidden min-h-[420px] lg:block">
@@ -213,28 +173,32 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Feature grid — bordered flat cards */}
+        {/* Feature grid — wormhole.com "foundation" style icon cards */}
         <section className="border-b border-[var(--line)]">
           <div className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12 lg:py-28">
             <Reveal className="max-w-2xl">
               <h2 className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
-                Everything checked, every swap.
+                Built for one job.
               </h2>
               <p className="mt-3 text-base text-[var(--muted)]">
-                One integrated router — not a bolt-on scanner you have to remember to visit
-                separately.
+                Not a trading terminal, not a portfolio tracker — a router with a rug-check
+                built into the quote path.
               </p>
             </Reveal>
             <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((feature, i) => (
-                <Reveal key={feature.n} delayMs={i * 60}>
-                  <div className="card-flat card-hover flex h-full flex-col gap-5 p-8">
-                    <span className="icon-blob text-sm font-semibold">{feature.n}</span>
+                <Reveal key={feature.title} delayMs={i * 60} className={feature.wide ? "sm:col-span-2" : ""}>
+                  <div
+                    className={`card-flat card-hover flex h-full flex-col gap-5 p-8 ${
+                      feature.wide ? "border-[var(--accent)] bg-[var(--accent-soft)] sm:flex-row sm:items-center sm:gap-8" : ""
+                    }`}
+                  >
+                    <span className="icon-blob shrink-0 text-lg">●</span>
                     <div className="flex flex-col gap-2.5">
-                      <p className="text-lg font-semibold leading-snug text-[var(--foreground)]">
-                        {feature.title}
+                      <p className="text-lg font-semibold leading-snug text-[var(--foreground)]">{feature.title}</p>
+                      <p className={`text-sm leading-relaxed text-[var(--muted)] ${feature.wide ? "sm:max-w-md" : ""}`}>
+                        {feature.body}
                       </p>
-                      <p className="text-sm leading-relaxed text-[var(--muted)]">{feature.body}</p>
                     </div>
                   </div>
                 </Reveal>
@@ -243,66 +207,47 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Product demo — immersive interactive preview */}
-        <section className="border-b border-[var(--line)] bg-[var(--surface-2)]">
+        {/* Product showcase — wormhole.com "Move with Portal" dark panel */}
+        <section id="checklist" className="border-b border-[var(--line)] bg-[var(--surface-2)]">
           <div className="mx-auto w-full max-w-6xl px-6 py-20 lg:px-12 lg:py-28">
             <Reveal className="mx-auto max-w-2xl text-center">
               <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
-                See it before you launch it
+                Not a score. A checklist.
               </h2>
               <p className={`${DISPLAY} mt-3 text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
                 This is what renders next to your quote.
               </p>
               <p className="mt-3 text-base text-[var(--muted)]">
-                Same panel, three real verdicts. Tap a state to see how the checklist reacts.
-              </p>
-            </Reveal>
-
-            <Reveal delayMs={120} className="mt-12">
-              <AppDemo />
-            </Reveal>
-          </div>
-        </section>
-
-        {/* Checklist preview */}
-        <section className="border-b border-[var(--line)] bg-[var(--surface)]">
-          <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-16 px-6 py-20 lg:grid-cols-2 lg:items-center lg:px-12 lg:py-28">
-            <Reveal className="flex flex-col gap-4">
-              <h2 className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
-                Not a score. A checklist.
-              </h2>
-              <p className="text-base text-[var(--muted)]">
                 A single 0–100 number is unfalsifiable — you can&apos;t tell why it moved. Every
                 line here is a real on-chain fact, and every line links out so you can verify it
-                yourself on Solscan instead of trusting us blind.
-              </p>
-              <p className="text-base text-[var(--muted)]">
-                Freeze and mint authority come straight off the SPL mint account. LP lock is
-                confirmed by decoding the actual Raydium pool, not a self-reported badge. Holder
-                concentration excludes recognized pool accounts. Price impact comes from your
-                actual trade size, not a generic liquidity figure.
+                on Solscan instead of trusting us blind.
               </p>
             </Reveal>
 
-            <Reveal delayMs={150} className="card-flat p-7 font-mono text-sm">
-              <p className="mb-4 flex items-center gap-2 text-red-500">
+            <Reveal delayMs={120} className="card-flat mt-12 p-6 sm:p-10">
+              <p className="mb-5 flex items-center gap-2 text-red-500">
                 <span className="motion-safe:animate-pulse">⛔</span>
                 <span className="font-semibold">CRITICAL — freeze authority is live</span>
               </p>
-              <ul className="flex flex-col gap-3">
+              <ul className="flex flex-col divide-y divide-[var(--line)] rounded-xl border border-[var(--line)] bg-[var(--background)] font-mono text-sm">
                 {CHECKLIST.map((row) => (
-                  <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="flex items-center gap-2 text-[var(--foreground)]">
-                      <span className={STATE_STYLE[row.state]}>{STATE_MARK[row.state]}</span>
-                      {row.label}
+                  <li key={row.label} className="flex items-center justify-between gap-4 px-5 py-4">
+                    <span className="flex items-start gap-2.5 text-[var(--foreground)]">
+                      <span className={`w-3 shrink-0 text-center ${STATE_STYLE[row.state]}`}>{STATE_MARK[row.state]}</span>
+                      <span className="flex flex-col">
+                        <span className="font-sans">{row.label}</span>
+                        <span className="font-sans text-xs text-[var(--muted)]">{row.note}</span>
+                      </span>
                     </span>
-                    <span className="flex items-center gap-2">
-                      <span className="value-pill">{row.value}</span>
-                      <span className="hidden text-[var(--muted)] lg:inline">{row.note}</span>
-                    </span>
+                    <span className="value-pill shrink-0">{row.value}</span>
                   </li>
                 ))}
               </ul>
+              <p className="mt-5 text-xs text-[var(--muted)]">
+                Illustrative example. Freeze and mint authority come straight off the SPL mint
+                account; LP lock is confirmed by decoding the actual Raydium pool, not a
+                self-reported badge.
+              </p>
             </Reveal>
           </div>
         </section>
@@ -351,7 +296,7 @@ export default function LandingPage() {
         </section>
 
         {/* Trust */}
-        <section className="border-b border-[var(--line)] bg-[var(--surface-2)]">
+        {/* <section className="border-b border-[var(--line)] bg-[var(--surface)]">
           <div className="mx-auto w-full max-w-7xl px-6 py-16 lg:px-12">
             <Reveal>
               <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
@@ -365,7 +310,7 @@ export default function LandingPage() {
               </p>
             </Reveal>
           </div>
-        </section>
+        </section> */}
 
         {/* Final CTA — soft teal band, wormhole footer-CTA pattern */}
         <section>

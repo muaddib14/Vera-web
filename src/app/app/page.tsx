@@ -21,42 +21,44 @@ import {
   getSwapTransaction,
   getTokenInfo,
   referralFeeActive,
-  type JupiterQuote,
-  type TokenInfo,
 } from "@/lib/jupiter";
+import type { JupiterQuote, TokenInfo } from "@/lib/jupiter";
 import { sendBundle } from "@/lib/jito";
-import { measureRealizedSwap, type MevComparison } from "@/lib/mev";
+import { measureRealizedSwap } from "@/lib/mev";
+import type { MevComparison } from "@/lib/mev";
 import type { ScoreResult } from "@/lib/scoring";
+import { StatusIcon } from "@/components/StatusIcon";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const JITO_TIP_LAMPORTS = 100_000; // 0.0001 SOL — fixed, not user-configurable in v1
 
-const STATE_STYLE: Record<string, string> = {
-  fail: "text-red-500",
-  warn: "text-amber-500",
-  pass: "text-[var(--accent-strong)]",
-  unverified: "text-[var(--muted)]",
-};
+// Jupiter's API returns no expiry field on a quote — staleness is a
+// convention we impose client-side because meme-coin prices move fast.
+// 20s matches the window Jupiter's own swap UI treats as "stale, refresh me".
+const QUOTE_TTL_MS = 20_000;
 
-const STATE_MARK: Record<string, string> = {
-  fail: "✗",
-  warn: "!",
-  pass: "✓",
-  unverified: "?",
-};
+const SLIPPAGE_PRESETS: { bps: number; label: string }[] = [
+  { bps: 10, label: "0.1%" },
+  { bps: 50, label: "0.5%" },
+  { bps: 100, label: "1%" },
+];
 
-const VERDICT_BANNER: Record<ScoreResult["verdict"], { text: string; cls: string }> = {
+const AMOUNT_PRESETS = [0.1, 0.5, 1, 2];
+const VERDICT_STAMP: Record<ScoreResult["verdict"], { label: string; text: string; cls: string }> = {
   critical: {
+    label: "REJECTED",
     text: "CRITICAL — a Tier 1 check failed",
-    cls: "border-red-500/40 bg-red-500/10 text-red-500",
+    cls: "border-red-600 text-red-600",
   },
   caution: {
+    label: "REVIEW",
     text: "CAUTION — some signals need a closer look",
-    cls: "border-amber-500/40 bg-amber-500/10 text-amber-500",
+    cls: "border-amber-700 text-amber-700",
   },
   clear: {
+    label: "PASSED",
     text: "No hard-kill signals found",
-    cls: "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)]",
+    cls: "border-[var(--accent-strong)] text-[var(--accent-strong)]",
   },
 };
 
@@ -68,6 +70,27 @@ function extractErrorMessage(err: unknown): string {
   }
   if (err instanceof Error) return err.message;
   return "Swap failed.";
+}
+
+// Jupiter's priceImpactPct has no severity of its own — a 0.01% and a 40%
+// trade render identically as plain text otherwise. This is the one number
+// most likely to matter on a thin meme-coin pool, so it gets a color.
+function impactSeverity(pctStr: string): { cls: string; label: string } {
+  const pct = Math.abs(parseFloat(pctStr));
+  if (isNaN(pct)) return { cls: "text-[var(--muted)]", label: "" };
+  if (pct >= 5) return { cls: "text-red-600", label: "high" };
+  if (pct >= 1) return { cls: "text-amber-700", label: "moderate" };
+  return { cls: "text-[var(--accent-strong)]", label: "low" };
+}
+
+// Jupiter returns priceImpactPct as a raw decimal string (sometimes 20+
+// digits long) — display-only rounding, the unrounded value still goes to
+// the API for the actual swap build.
+function formatPct(pctStr: string): string {
+  const pct = parseFloat(pctStr);
+  if (isNaN(pct)) return pctStr;
+  if (pct !== 0 && Math.abs(pct) < 0.01) return "<0.01";
+  return pct.toFixed(2);
 }
 
 const POPULAR_TOKENS = [
@@ -88,13 +111,18 @@ function Spinner() {
 
 const LABEL = "text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]";
 
+type HistoryEntry = { mint: string; symbol?: string; verdict: ScoreResult["verdict"]; ts: number };
+
 export default function AppPage() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction, signTransaction } = useWallet();
 
   const [outputMint, setOutputMint] = useState("");
   const [amountSol, setAmountSol] = useState("0.1");
+  const [slippageBps, setSlippageBps] = useState(50);
   const [quote, setQuote] = useState<JupiterQuote | null>(null);
+  const [quoteFetchedAt, setQuoteFetchedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [score, setScore] = useState<ScoreResult | null>(null);
   const [scoreError, setScoreError] = useState<string | null>(null);
   const [ackRisk, setAckRisk] = useState(false);
@@ -108,6 +136,7 @@ export default function AppPage() {
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [solInfo, setSolInfo] = useState<TokenInfo | null>(null);
   const [outputInfo, setOutputInfo] = useState<TokenInfo | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     getTokenInfo(SOL_MINT).then(setSolInfo);
@@ -124,11 +153,24 @@ export default function AppPage() {
     };
   }, [connection, publicKey, signature]);
 
+  // Ticks once a second only while a quote is on screen — drives the
+  // freshness countdown without a live-updating clock the rest of the time.
+  useEffect(() => {
+    if (!quoteFetchedAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [quoteFetchedAt]);
+
+  const quoteAgeMs = quoteFetchedAt ? now - quoteFetchedAt : null;
+  const quoteStale = quoteAgeMs !== null && quoteAgeMs >= QUOTE_TTL_MS;
+  const quoteRemainingS = quoteAgeMs !== null ? Math.max(0, Math.ceil((QUOTE_TTL_MS - quoteAgeMs) / 1000)) : null;
+
   async function handleGetQuote(mintOverride?: string) {
     const targetMint = mintOverride ?? outputMint;
     setStatus(null);
     setSignature(null);
     setQuote(null);
+    setQuoteFetchedAt(null);
     setScore(null);
     setScoreError(null);
     setAckRisk(false);
@@ -162,8 +204,11 @@ export default function AppPage() {
     const amountLamports = Math.round(parseFloat(amountSol) * LAMPORTS_PER_SOL);
 
     // Quote and score fire together — the score panel never waits behind the quote.
-    const quotePromise = getQuote({ inputMint: SOL_MINT, outputMint: targetMint, amountLamports, includePlatformFee: true })
-      .then(setQuote)
+    const quotePromise = getQuote({ inputMint: SOL_MINT, outputMint: targetMint, amountLamports, slippageBps, includePlatformFee: true })
+      .then((q) => {
+        setQuote(q);
+        setQuoteFetchedAt(Date.now());
+      })
       .catch((err) => setStatus(err instanceof Error ? err.message : "Failed to fetch quote."))
       .finally(() => setBusy(false));
 
@@ -174,11 +219,40 @@ export default function AppPage() {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Failed to score mint.");
         setScore(body as ScoreResult);
+        setHistory((prev) =>
+          [{ mint: targetMint, verdict: (body as ScoreResult).verdict, ts: Date.now() }, ...prev.filter((h) => h.mint !== targetMint)].slice(0, 4)
+        );
       })
       .catch((err) => setScoreError(err instanceof Error ? err.message : "Failed to score mint."))
       .finally(() => setScoring(false));
 
     await Promise.all([quotePromise, scorePromise]);
+  }
+
+  // Re-prices without re-running the safety check — mint safety doesn't
+  // change in 20 seconds, only the market does. Manual, not silent/auto:
+  // a product built on disclosure shouldn't swap numbers under you unasked.
+  async function refreshQuote() {
+    if (!outputMint) return;
+    const amountNum = parseFloat(amountSol);
+    if (!amountSol || isNaN(amountNum) || amountNum <= 0) return;
+    setBusy(true);
+    try {
+      const q = await getQuote({
+        inputMint: SOL_MINT,
+        outputMint,
+        amountLamports: Math.round(amountNum * LAMPORTS_PER_SOL),
+        slippageBps,
+        includePlatformFee: true,
+      });
+      setQuote(q);
+      setQuoteFetchedAt(Date.now());
+      setStatus(null);
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Failed to refresh quote.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleSwap() {
@@ -237,11 +311,14 @@ export default function AppPage() {
 
   const needsAck = score?.verdict === "critical" && !ackRisk;
   const canSwap = quote && publicKey && !needsAck;
+  const amountValid = amountSol !== "" && !isNaN(parseFloat(amountSol)) && parseFloat(amountSol) > 0;
+  const minReceived =
+    quote && outputInfo
+      ? formatTokenAmount(String(Math.floor((Number(quote.outAmount) * (10_000 - slippageBps)) / 10_000)), outputInfo.decimals)
+      : null;
 
   return (
     <div className="app-shell flex flex-1 flex-col font-sans">
-      
-
       <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--background)]/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5 lg:px-10">
           <Link href="/" className="flex items-center gap-2.5">
@@ -264,7 +341,42 @@ export default function AppPage() {
         </div>
       </header>
 
-      <main className="console-grid mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center gap-6 px-6 py-12 lg:flex-row lg:items-start lg:gap-6 lg:px-10 lg:py-16">
+      <main className="console-grid mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-12 lg:px-10 lg:py-16">
+        {/* Step indicator — echoes the 3-step story told on the landing page */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-xs text-[var(--muted)]">
+          <span className="flex items-center gap-1.5 text-[var(--foreground)]">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)]">1</span>
+            Paste a mint
+          </span>
+          <span className="text-[var(--line)]">→</span>
+          <span className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--line)]">2</span>
+            Review the checklist
+          </span>
+          <span className="text-[var(--line)]">→</span>
+          <span className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--line)]">3</span>
+            Sign, or don&apos;t
+          </span>
+        </div>
+
+        {history.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-[var(--muted)]">
+            <span className="uppercase tracking-[0.1em]">Recently checked</span>
+            {history.map((h) => (
+              <button
+                key={h.mint}
+                type="button"
+                onClick={() => handleGetQuote(h.mint)}
+                className={`rounded-full border px-2.5 py-1 transition-colors hover:border-[var(--accent)] ${VERDICT_STAMP[h.verdict].cls}`}
+              >
+                {h.mint.slice(0, 4)}…{h.mint.slice(-4)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
         {/* Trade panel */}
         <section className="card-flat flex w-full flex-col gap-5 p-7 lg:w-[26rem] lg:shrink-0">
           <div>
@@ -292,7 +404,10 @@ export default function AppPage() {
               <input
                 className="w-full bg-transparent text-2xl font-semibold text-[var(--foreground)] outline-none"
                 value={amountSol}
-                onChange={(e) => setAmountSol(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || /^\d*\.?\d*$/.test(v)) setAmountSol(v);
+                }}
                 inputMode="decimal"
               />
               <span className="shrink-0 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-sm font-semibold text-[var(--foreground)]">
@@ -304,6 +419,27 @@ export default function AppPage() {
                 {formatUsd(parseFloat(amountSol) * solInfo.usdPrice)}
               </p>
             )}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {AMOUNT_PRESETS.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setAmountSol(String(v))}
+                  className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
+                >
+                  {v} SOL
+                </button>
+              ))}
+              {solBalance !== null && (
+                <button
+                  type="button"
+                  onClick={() => setAmountSol(String(Math.max(solBalance - 0.01, 0)))}
+                  className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
+                >
+                  Max
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="relative flex justify-center">
@@ -319,6 +455,17 @@ export default function AppPage() {
               className="mt-2 w-full bg-transparent font-mono text-sm text-[var(--foreground)] outline-none"
               value={outputMint}
               onChange={(e) => setOutputMint(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleGetQuote();
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text").trim();
+                if (pasted) {
+                  e.preventDefault();
+                  setOutputMint(pasted);
+                  handleGetQuote(pasted);
+                }
+              }}
               placeholder="Paste a mint address"
             />
             {outputInfo && (
@@ -347,18 +494,59 @@ export default function AppPage() {
             )}
           </div>
 
+          <div className="flex items-center justify-between rounded-lg border border-[var(--line)] px-4 py-2.5">
+            <span className={LABEL}>Slippage</span>
+            <div className="flex gap-1">
+              {SLIPPAGE_PRESETS.map((p) => (
+                <button
+                  key={p.bps}
+                  type="button"
+                  onClick={() => setSlippageBps(p.bps)}
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    slippageBps === p.bps
+                      ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                      : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={() => handleGetQuote()}
-            disabled={busy}
+            disabled={busy || !outputMint || !amountValid}
             className="flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-on)] transition-colors hover:bg-[var(--accent-strong)] disabled:opacity-50"
           >
             {busy && !quote && <Spinner />}
-            Get quote
+            {!outputMint ? "Paste a mint to start" : "Get quote"}
           </button>
 
           {quote && (
             <div className="flex flex-col gap-2 rounded-lg border border-[var(--line)] bg-[var(--background)] p-4 text-sm">
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[var(--muted)]">Quote freshness</span>
+                {quoteStale ? (
+                  <button
+                    type="button"
+                    onClick={refreshQuote}
+                    className="font-semibold text-amber-700 underline underline-offset-2"
+                  >
+                    Stale — refresh
+                  </button>
+                ) : (
+                  <span className="font-mono text-[var(--muted)]">{quoteRemainingS}s</span>
+                )}
+              </div>
+              <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+                <div
+                  className={`h-1 rounded-full transition-all duration-1000 ease-linear ${quoteStale ? "bg-amber-600" : "bg-[var(--accent)]"}`}
+                  style={{ width: `${quoteRemainingS !== null ? (quoteRemainingS / (QUOTE_TTL_MS / 1000)) * 100 : 0}%` }}
+                />
+              </div>
+
+              <div className="flex justify-between pt-1">
                 <span className="text-[var(--muted)]">You receive</span>
                 <span className="text-right font-mono text-[var(--foreground)]">
                   {outputInfo ? formatTokenAmount(quote.outAmount, outputInfo.decimals) : quote.outAmount}{" "}
@@ -370,9 +558,23 @@ export default function AppPage() {
                   )}
                 </span>
               </div>
+              {minReceived && (
+                <div className="flex justify-between">
+                  <span className="text-[var(--muted)]">Minimum received</span>
+                  <span className="font-mono text-[var(--foreground)]">
+                    {minReceived} {outputInfo?.symbol}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">Price impact</span>
-                <span className="font-mono text-[var(--foreground)]">{quote.priceImpactPct}%</span>
+                <span className={`font-mono ${impactSeverity(quote.priceImpactPct).cls}`}>
+                  {formatPct(quote.priceImpactPct)}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted)]">Route</span>
+                <span className="text-[var(--foreground)]">Jupiter{useJito ? " · Jito bundle" : ""}</span>
               </div>
               {referralFeeActive() && (
                 <div className="flex justify-between border-t border-[var(--line)] pt-2 text-xs">
@@ -421,7 +623,7 @@ export default function AppPage() {
               className="flex items-center justify-center gap-2 rounded-lg border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:bg-[var(--accent-soft)] disabled:opacity-50"
             >
               {busy && <Spinner />}
-              Sign &amp; swap
+              {needsAck ? "Acknowledge risk to swap" : "Sign & swap"}
             </button>
           )}
 
@@ -466,7 +668,11 @@ export default function AppPage() {
           )}
 
           {mevResult && (
-            <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--line)] bg-[var(--background)] p-4 text-sm">
+            <div className="flex flex-col gap-1.5 rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                MEV comparison
+              </p>
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">Quoted out</span>
                 <span className="font-mono text-[var(--foreground)]">
@@ -498,7 +704,7 @@ export default function AppPage() {
         </section>
 
         {/* Score panel */}
-        <section className="card-flat flex w-full flex-1 flex-col gap-5 p-7 lg:sticky lg:top-24">
+        <section className="card-flat flex w-full flex-1 flex-col gap-5 border-t-2 border-t-[var(--accent)] p-7 lg:sticky lg:top-24">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Checklist</p>
             <h2 className={`font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--foreground)]`}>
@@ -514,14 +720,16 @@ export default function AppPage() {
                 </p>
                 <ul className="flex flex-col divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--background)] font-mono text-sm">
                   {[
-                    ["✓", "Freeze authority", "cannot freeze your account", "revoked"],
-                    ["✓", "Mint authority", "supply is fixed", "revoked"],
-                    ["!", "Top 10 holders", "of supply, pools excluded", "34.2%"],
-                    ["✓", "Liquidity depth", "price impact at this trade size", "0.4% impact"],
-                  ].map(([mark, label, note, value]) => (
+                    ["pass", "Freeze authority", "cannot freeze your account", "revoked"],
+                    ["pass", "Mint authority", "supply is fixed", "revoked"],
+                    ["warn", "Top 10 holders", "of supply, pools excluded", "34.2%"],
+                    ["pass", "Liquidity depth", "price impact at this trade size", "0.4% impact"],
+                  ].map(([state, label, note, value]) => (
                     <li key={label} className="flex items-center justify-between gap-4 px-4 py-3">
                       <span className="flex items-start gap-2.5 text-[var(--foreground)]">
-                        <span className="w-3 shrink-0 text-center text-[var(--accent-strong)]">{mark}</span>
+                        <span className="mt-0.5 w-3 shrink-0 text-center">
+                          <StatusIcon state={state === "pass" ? "pass" : "warn"} />
+                        </span>
                         <span className="flex flex-col">
                           <span className="font-sans">{label}</span>
                           <span className="font-sans text-xs text-[var(--muted)]">{note}</span>
@@ -554,18 +762,24 @@ export default function AppPage() {
 
           {score && (
             <>
-              <p
-                className={`rounded-lg border px-4 py-3 text-sm font-semibold ${VERDICT_BANNER[score.verdict].cls}`}
-              >
-                {VERDICT_BANNER[score.verdict].text}
-              </p>
+              <div className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--background)] px-4 py-3">
+                <span
+                  className={`rounded border-2 px-2 py-0.5 text-xs font-black uppercase tracking-[0.15em] ${VERDICT_STAMP[score.verdict].cls}`}
+                  style={{ transform: "rotate(-4deg)" }}
+                >
+                  {VERDICT_STAMP[score.verdict].label}
+                </span>
+                <span className="text-sm font-semibold text-[var(--foreground)]">
+                  {VERDICT_STAMP[score.verdict].text}
+                </span>
+              </div>
 
               <ul className="flex flex-col divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--background)] font-mono text-sm">
                 {score.lines.map((line) => (
                   <li key={line.key} className="flex items-center justify-between gap-4 px-4 py-3">
                     <span className="flex items-start gap-2.5 text-[var(--foreground)]">
-                      <span className={`w-3 shrink-0 text-center ${STATE_STYLE[line.state]}`}>
-                        {STATE_MARK[line.state]}
+                      <span className="mt-0.5 w-3 shrink-0 text-center">
+                        <StatusIcon state={line.state} />
                       </span>
                       <span className="flex flex-col">
                         <span className="font-sans">{line.label}</span>
@@ -600,6 +814,7 @@ export default function AppPage() {
             </>
           )}
         </section>
+        </div>
       </main>
     </div>
   );

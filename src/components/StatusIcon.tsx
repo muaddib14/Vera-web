@@ -4,8 +4,8 @@ export type CheckState = "pass" | "warn" | "fail" | "unverified";
 
 const CLS: Record<CheckState, string> = {
   pass: "text-[var(--accent-strong)]",
-  warn: "text-amber-700",
-  fail: "text-red-600",
+  warn: "text-amber-400",
+  fail: "text-red-400",
   unverified: "text-[var(--muted)]",
 };
 

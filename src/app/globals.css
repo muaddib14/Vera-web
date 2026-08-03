@@ -42,37 +42,37 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Marketing site — always light, matching wormhole.com's default surface
-   regardless of OS theme. The app console (below) is the opposite: always
-   dark. Different products, different defaults, both deliberate. */
-.landing-light {
-  --background: #f4f7f6;
-  --surface: #ffffff;
-  --surface-2: #eaf1ef;
-  --foreground: #0d1512;
-  --muted: #4c5f58;
-  --line: #d3ded9;
-  --accent: #0e9c78;
-  --accent-strong: #0a7a5e;
-  --accent-soft: #d8f3e9;
+/* Marketing site — always dark, matching Uniswap's app.uniswap.org surface
+   regardless of OS theme. The app console (below) stays on the original
+   light shell. Different products, different defaults, both deliberate. */
+.landing-dark {
+  --background: #0a0a0e;
+  --surface: #131318;
+  --surface-2: #1b1b22;
+  --foreground: #f7f6fa;
+  --muted: #9d9ba8;
+  --line: #29282f;
+  --accent: #fc72ff;
+  --accent-strong: #e93ee6;
+  --accent-soft: rgba(252, 114, 255, 0.12);
   --accent-on: #ffffff;
   background: var(--background);
   color: var(--foreground);
 }
 
-/* App console shell — same light surface as the marketing site, forced
-   regardless of system theme so the tool never looks disconnected from the
-   brand it's launched from. */
+/* App console shell — same dark + pink surface as the marketing site,
+   forced regardless of system theme so the tool never looks disconnected
+   from the brand it's launched from. */
 .app-shell {
-  --background: #f4f7f6;
-  --surface: #ffffff;
-  --surface-2: #eaf1ef;
-  --foreground: #0d1512;
-  --muted: #4c5f58;
-  --line: #d3ded9;
-  --accent: #0e9c78;
-  --accent-strong: #0a7a5e;
-  --accent-soft: #d8f3e9;
+  --background: #0a0a0e;
+  --surface: #131318;
+  --surface-2: #1b1b22;
+  --foreground: #f7f6fa;
+  --muted: #9d9ba8;
+  --line: #29282f;
+  --accent: #fc72ff;
+  --accent-strong: #e93ee6;
+  --accent-soft: rgba(252, 114, 255, 0.12);
   --accent-on: #ffffff;
   background: var(--background);
   color: var(--foreground);
@@ -131,7 +131,7 @@ body {
 
 /* Flat bordered card */
 .card-flat {
-  border-radius: 18px;
+  border-radius: 28px;
   background: var(--surface);
   border: 1px solid var(--line);
 }
@@ -153,6 +153,63 @@ body {
   border-radius: 9999px;
   background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+/* Small uppercase eyebrow pill — live-dot label above a section headline */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.eyebrow-dot {
+  height: 0.4rem;
+  width: 0.4rem;
+  border-radius: 9999px;
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Protocol-stats style cell — boxed number tile with a muted label */
+.stat-cell {
+  transition: background-color 200ms ease;
+}
+.stat-cell:hover {
+  background: var(--surface-2);
+}
+
+/* Colorful feature tiles — Uniswap's "built for all the ways you swap" cards.
+   Each variant sets its own radial-gradient wash; text stays on shared tokens. */
+.tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  isolation: isolate;
+}
+.tile-purple { background: radial-gradient(120% 140% at 100% 0%, rgba(155, 92, 255, 0.35), transparent 60%), #1a1730; }
+.tile-pink   { background: radial-gradient(120% 140% at 100% 0%, rgba(252, 114, 255, 0.35), transparent 60%), #241322; }
+.tile-orange { background: radial-gradient(120% 140% at 100% 0%, rgba(255, 145, 64, 0.32), transparent 60%), #241a12; }
+.tile-green  { background: radial-gradient(120% 140% at 100% 0%, rgba(70, 220, 150, 0.3), transparent 60%), #10201a; }
+.tile-blue   { background: radial-gradient(120% 140% at 100% 0%, rgba(80, 160, 255, 0.32), transparent 60%), #101a26; }
+.tile-teal   { background: radial-gradient(120% 140% at 100% 0%, rgba(60, 220, 210, 0.28), transparent 60%), #0f1f1e; }
+
+.tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 /* Value pill used in divided list rows */
@@ -201,9 +258,9 @@ body {
   font-weight: 600 !important;
   font-size: 0.85rem !important;
   line-height: 1.2 !important;
-  border-radius: 8px !important;
+  border-radius: 9999px !important;
   height: auto !important;
-  padding: 0.5rem 1rem !important;
+  padding: 0.5rem 1.1rem !important;
 }
 .wallet-adapter-button-start-icon,
 .wallet-adapter-button-end-icon {

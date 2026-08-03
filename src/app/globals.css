@@ -155,6 +155,36 @@ body {
   color: var(--accent-strong);
 }
 
+/* Floating token bubbles scattered behind the hero — blurred and dim at
+   rest, sharpen and lift on hover. Each instance sets --delay/--x for its
+   own float rhythm and drift so they don't all bob in lockstep. */
+.hero-orb {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 800;
+  color: #fff;
+  filter: blur(3px);
+  opacity: 0.55;
+  cursor: default;
+  transition: filter 300ms ease, opacity 300ms ease, transform 300ms ease;
+  animation: orb-float 7s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+  pointer-events: auto;
+}
+.hero-orb:hover {
+  filter: blur(0);
+  opacity: 1;
+  transform: scale(1.08);
+  animation-play-state: paused;
+}
+@keyframes orb-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
 /* Small uppercase eyebrow pill — live-dot label above a section headline */
 .eyebrow {
   display: inline-flex;

@@ -609,48 +609,15 @@ export default function TradeConsole() {
         )}
       </section>
 
-      {/* Score panel — VERA's differentiator, stacked below the widget
-          instead of competing beside it, so the default view still reads
-          as one simple card like Uniswap's. */}
+      {/* Score panel — VERA's differentiator, but it only takes up space
+          once there's something to show. Before that, the trade card is
+          the whole page, same as Uniswap's homepage. */}
+      {(scoring || score || scoreError) && (
       <section className="flex w-full flex-col gap-5 rounded-[32px] border-t-4 border-t-[var(--accent)] bg-[var(--surface)] p-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Checklist</p>
           <h2 className="font-sans text-2xl font-extrabold tracking-tight text-[var(--foreground)]">Safety score</h2>
         </div>
-
-        {!scoring && !score && !scoreError && (
-          <div className="flex flex-1 flex-col gap-4">
-            <div className="pointer-events-none select-none opacity-40 blur-[0.5px]">
-              <p className="mb-3 rounded-2xl border border-[var(--line)] bg-[var(--background)] px-4 py-3 text-sm font-semibold text-[var(--muted)]">
-                No hard-kill signals found
-              </p>
-              <ul className="flex flex-col divide-y divide-[var(--line)] rounded-2xl border border-[var(--line)] bg-[var(--background)] font-mono text-sm">
-                {[
-                  ["pass", "Freeze authority", "cannot freeze your account", "revoked"],
-                  ["pass", "Mint authority", "supply is fixed", "revoked"],
-                  ["warn", "Top 10 holders", "of supply, pools excluded", "34.2%"],
-                  ["pass", "Liquidity depth", "price impact at this trade size", "0.4% impact"],
-                ].map(([state, label, note, value]) => (
-                  <li key={label} className="flex items-center justify-between gap-4 px-4 py-3">
-                    <span className="flex items-start gap-2.5 text-[var(--foreground)]">
-                      <span className="mt-0.5 w-3 shrink-0 text-center">
-                        <StatusIcon state={state === "pass" ? "pass" : "warn"} />
-                      </span>
-                      <span className="flex flex-col">
-                        <span className="font-sans">{label}</span>
-                        <span className="font-sans text-xs text-[var(--muted)]">{note}</span>
-                      </span>
-                    </span>
-                    <span className="value-pill shrink-0 text-right">{value}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <p className="text-center text-xs text-[var(--muted)]">
-              Example only — paste a mint on the left to run the real check.
-            </p>
-          </div>
-        )}
 
         {scoring && !score && (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 py-16 text-center">
@@ -717,6 +684,7 @@ export default function TradeConsole() {
           </>
         )}
       </section>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { getTokenInfo, searchTokens } from "@/lib/jupiter";
 
 // The five coins the lead asked for, by real mint where we know it —
@@ -42,10 +43,11 @@ const ORB_SLOTS = [
   { top: "96%", left: "3%", size: 38, delay: "2.0s" },
 ] as const;
 
-type IconMap = Partial<Record<(typeof HERO_TOKENS)[number]["key"], string>>;
+type TokenKey = (typeof HERO_TOKENS)[number]["key"];
+type ResolvedMap = Partial<Record<TokenKey, { icon?: string; mint: string }>>;
 
 export default function HeroOrbs() {
-  const [icons, setIcons] = useState<IconMap>({});
+  const [resolved, setResolved] = useState<ResolvedMap>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -55,11 +57,13 @@ export default function HeroOrbs() {
           "mint" in t
             ? await getTokenInfo(t.mint)
             : (await searchTokens(t.symbolQuery)).find((r) => r.symbol.toUpperCase() === t.key) ?? null;
-        return [t.key, info?.icon] as const;
+        const mint = "mint" in t ? t.mint : info?.id;
+        if (!mint) return null;
+        return [t.key, { icon: info?.icon, mint }] as const;
       })
     ).then((pairs) => {
       if (cancelled) return;
-      setIcons(Object.fromEntries(pairs.filter(([, icon]) => icon)));
+      setResolved(Object.fromEntries(pairs.filter((p): p is NonNullable<typeof p> => p !== null)));
     });
     return () => {
       cancelled = true;
@@ -70,27 +74,31 @@ export default function HeroOrbs() {
     <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
       {ORB_SLOTS.map((slot, i) => {
         const token = HERO_TOKENS[i % HERO_TOKENS.length];
-        const icon = icons[token.key];
-        return (
-          <span
-            key={i}
-            className="hero-orb overflow-hidden"
-            style={{
-              top: slot.top,
-              left: slot.left,
-              width: slot.size,
-              height: slot.size,
-              fontSize: Math.max(7, slot.size * 0.19),
-              background: icon ? undefined : `linear-gradient(135deg, ${token.from}, ${token.to})`,
-              ["--delay" as string]: slot.delay,
-            }}
-          >
-            {icon ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={icon} alt="" className="h-full w-full object-cover" />
-            ) : (
-              token.key
-            )}
+        const info = resolved[token.key];
+        const orbStyle = {
+          top: slot.top,
+          left: slot.left,
+          width: slot.size,
+          height: slot.size,
+          fontSize: Math.max(7, slot.size * 0.19),
+          background: info?.icon ? undefined : `linear-gradient(135deg, ${token.from}, ${token.to})`,
+          ["--delay" as string]: slot.delay,
+        };
+        const content = info?.icon ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={info.icon} alt="" className="h-full w-full object-cover" />
+        ) : (
+          token.key
+        );
+
+        // Only clickable once we know its mint — no dead link while resolving.
+        return info?.mint ? (
+          <Link key={i} href={`/token/${info.mint}`} className="hero-orb overflow-hidden" style={orbStyle} title={`View ${token.key}`}>
+            {content}
+          </Link>
+        ) : (
+          <span key={i} className="hero-orb overflow-hidden" style={orbStyle}>
+            {content}
           </span>
         );
       })}

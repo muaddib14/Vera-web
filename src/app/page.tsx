@@ -111,7 +111,7 @@ export default function LandingPage() {
         <section id="trade" className="bg-dots relative overflow-hidden border-b border-[var(--line)]">
           <HeroOrbs />
 
-          <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-6 py-20 text-center lg:px-12 lg:py-24">
+          <div className="pointer-events-none relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-6 py-20 text-center lg:px-12 lg:py-24">
             <Reveal className="flex flex-col items-center gap-7">
               <h1 className={`${DISPLAY} text-6xl leading-[1.02] tracking-tighter sm:text-7xl lg:text-8xl`}>
                 <span className="text-[var(--foreground)]">See the rug</span>
@@ -125,7 +125,7 @@ export default function LandingPage() {
               </p>
             </Reveal>
 
-            <Reveal delayMs={150} className="w-full pt-2">
+            <Reveal delayMs={150} className="pointer-events-auto w-full pt-2">
               <TradeConsole />
             </Reveal>
           </div>

@@ -52,13 +52,70 @@ export type TokenInfo = {
   icon?: string;
   decimals: number;
   usdPrice?: number;
+  website?: string;
+  twitter?: string;
+  mcap?: number;
+  fdv?: number;
+  liquidity?: number;
+  holderCount?: number;
 };
 
+export async function searchTokens(query: string): Promise<TokenInfo[]> {
+  const res = await fetch(`${JUP_TOKENS_BASE}/search?query=${query}`, { headers: jupiterHeaders() });
+  if (!res.ok) return [];
+  return (await res.json()) as TokenInfo[];
+}
+
 export async function getTokenInfo(mint: string): Promise<TokenInfo | null> {
-  const res = await fetch(`${JUP_TOKENS_BASE}/search?query=${mint}`, { headers: jupiterHeaders() });
-  if (!res.ok) return null;
-  const results = (await res.json()) as TokenInfo[];
+  const results = await searchTokens(mint);
   return results.find((t) => t.id === mint) ?? results[0] ?? null;
+}
+
+type IntervalStats = { priceChange?: number; buyVolume?: number; sellVolume?: number };
+
+export type TrendingToken = {
+  id: string;
+  name: string;
+  symbol: string;
+  icon?: string;
+  decimals: number;
+  usdPrice?: number;
+  mcap?: number;
+  fdv?: number;
+  liquidity?: number;
+  holderCount?: number;
+  isVerified?: boolean;
+  stats5m?: IntervalStats;
+  stats1h?: IntervalStats;
+  stats6h?: IntervalStats;
+  stats24h?: IntervalStats;
+};
+
+// Powers the Explore page — Jupiter's own "what's moving" list, not a
+// hand-picked one. `interval` matches the windows Jupiter exposes (5m/1h/6h/24h).
+export async function getTrendingTokens(interval: "5m" | "1h" | "6h" | "24h" = "24h", limit = 30): Promise<TrendingToken[]> {
+  const res = await fetch(`${JUP_TOKENS_BASE}/toptrending/${interval}?limit=${limit}`, { headers: jupiterHeaders() });
+  if (!res.ok) return [];
+  return (await res.json()) as TrendingToken[];
+}
+
+export type PriceInfo = { usdPrice: number; priceChange24h?: number; liquidity?: number; decimals: number };
+
+// Batched price lookup for Portfolio — one request for every held mint
+// instead of N. Jupiter's price/v3 caps ids per request, so this chunks.
+export async function getPrices(mints: string[]): Promise<Record<string, PriceInfo>> {
+  if (mints.length === 0) return {};
+  const chunks: string[][] = [];
+  for (let i = 0; i < mints.length; i += 50) chunks.push(mints.slice(i, i + 50));
+
+  const results = await Promise.all(
+    chunks.map(async (chunk) => {
+      const res = await fetch(`https://lite-api.jup.ag/price/v3?ids=${chunk.join(",")}`, { headers: jupiterHeaders() });
+      if (!res.ok) return {};
+      return (await res.json()) as Record<string, PriceInfo>;
+    })
+  );
+  return Object.assign({}, ...results);
 }
 
 export function formatTokenAmount(rawAmount: string, decimals: number): string {

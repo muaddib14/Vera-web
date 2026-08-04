@@ -9,6 +9,19 @@ const CLS: Record<CheckState, string> = {
   unverified: "text-[var(--muted)]",
 };
 
+// Same severity mapping, as a pill background instead of an icon color —
+// so a fail/warn line reads as urgent at a glance, not just another pink chip.
+const PILL_CLS: Record<CheckState, string> = {
+  pass: "bg-[var(--accent-soft)] text-[var(--accent-strong)]",
+  warn: "bg-amber-400/10 text-amber-400",
+  fail: "bg-red-500/10 text-red-400",
+  unverified: "bg-[var(--surface-2)] text-[var(--muted)]",
+};
+
+export function pillClassFor(state: CheckState): string {
+  return PILL_CLS[state];
+}
+
 // Replaces raw ✓ / ✗ / ! Unicode glyphs (inconsistent baseline/weight across
 // OS font stacks) with a tiny shared stroke-icon set — one visual language
 // for "pass/warn/fail" everywhere it appears (landing checklist, app score).

@@ -21,7 +21,7 @@ import { sendBundle } from "@/lib/jito";
 import { measureRealizedSwap } from "@/lib/mev";
 import type { MevComparison } from "@/lib/mev";
 import type { ScoreResult } from "@/lib/scoring";
-import { StatusIcon } from "@/components/StatusIcon";
+import { StatusIcon, pillClassFor } from "@/components/StatusIcon";
 
 const WalletMultiButton = dynamic(
   () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
@@ -112,11 +112,11 @@ const LABEL = "text-xs font-semibold uppercase tracking-[0.1em] text-[var(--mute
 // The live trade + checklist pair — the actual product, not a mockup of it.
 // Shared between the full /app console and the marketing hero, so "the swap
 // is right there" is literally true instead of a screenshot pretending it is.
-export default function TradeConsole() {
+export default function TradeConsole({ initialMint }: { initialMint?: string } = {}) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction, signTransaction } = useWallet();
 
-  const [outputMint, setOutputMint] = useState("");
+  const [outputMint, setOutputMint] = useState(initialMint ?? "");
   const [amountSol, setAmountSol] = useState("0.1");
   const [slippageBps, setSlippageBps] = useState(50);
   const [quote, setQuote] = useState<JupiterQuote | null>(null);
@@ -139,6 +139,13 @@ export default function TradeConsole() {
   useEffect(() => {
     getTokenInfo(SOL_MINT).then(setSolInfo);
   }, []);
+
+  // Coming from a token detail page — run the quote immediately instead of
+  // making the visitor paste the mint they just clicked on.
+  useEffect(() => {
+    if (initialMint) handleGetQuote(initialMint);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMint]);
 
   useEffect(() => {
     if (!publicKey) return;
@@ -532,7 +539,11 @@ export default function TradeConsole() {
           <button
             onClick={handleSwap}
             disabled={busy || !canSwap}
-            className="flex items-center justify-center gap-2 rounded-full border border-[var(--accent)] px-4 py-3.5 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:bg-[var(--accent-soft)] disabled:opacity-50"
+            className={`flex items-center justify-center gap-2 rounded-full border px-4 py-3.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
+              needsAck
+                ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
+                : "border-[var(--accent)] text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]"
+            }`}
           >
             {busy && <Spinner />}
             {needsAck ? "Acknowledge risk to swap" : "Sign & swap"}
@@ -655,7 +666,9 @@ export default function TradeConsole() {
                       <span className="font-sans text-xs text-[var(--muted)]">{line.note}</span>
                     </span>
                   </span>
-                  <span className="value-pill shrink-0 text-right">{line.value}</span>
+                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-right text-xs font-semibold ${pillClassFor(line.state)}`}>
+                    {line.value}
+                  </span>
                 </li>
               ))}
             </ul>

@@ -1,10 +1,12 @@
 import Image from "next/image";
 import ConnectButton from "@/components/ConnectButton";
+import SiteHeader from "@/components/SiteHeader";
 import CountUp from "@/components/CountUp";
 import Reveal from "@/components/Reveal";
 import TradeConsole from "@/components/TradeConsole";
+import HeroOrbs from "@/components/HeroOrbs";
 import DiamondField from "@/components/DiamondField";
-import { StatusIcon } from "@/components/StatusIcon";
+import { StatusIcon, pillClassFor } from "@/components/StatusIcon";
 import { LockIcon, ShieldIcon, LayersIcon, UsersIcon, BoltIcon, KeyIcon } from "@/components/icons";
 
 const CHECKLIST = [
@@ -17,33 +19,6 @@ const CHECKLIST = [
 ];
 
 const DISPLAY = "font-sans font-extrabold";
-
-// Floating hero bubbles — the real tokens/infra VERA already talks to
-// (POPULAR_TOKENS, STACK), not decorative logos invented for the effect.
-const HERO_ORBS = [
-  { label: "BONK", top: "9%", left: "5%", size: 92, delay: "0s", from: "#f59e0b", to: "#ea580c" },
-  { label: "JUP", top: "48%", left: "2%", size: 68, delay: "1.2s", from: "#a855f7", to: "#6366f1" },
-  { label: "USDC", top: "18%", left: "90%", size: 74, delay: "0.6s", from: "#2775ca", to: "#1e3a8a" },
-  { label: "WIF", top: "64%", left: "92%", size: 82, delay: "1.8s", from: "#22c55e", to: "#15803d" },
-  { label: "JITO", top: "88%", left: "15%", size: 56, delay: "2.4s", from: "#fc72ff", to: "#7c3aed" },
-  { label: "SOL", top: "5%", left: "77%", size: 60, delay: "0.9s", from: "#9945FF", to: "#14F195" },
-  { label: "HELIUS", top: "33%", left: "13%", size: 50, delay: "1.6s", from: "#38bdf8", to: "#0284c7" },
-  { label: "SOLANA", top: "78%", left: "69%", size: 64, delay: "0.3s", from: "#9945FF", to: "#14F195" },
-  { label: "USDC", top: "2%", left: "39%", size: 42, delay: "2.1s", from: "#2775ca", to: "#1e3a8a" },
-  { label: "BONK", top: "90%", left: "39%", size: 48, delay: "1.4s", from: "#f59e0b", to: "#ea580c" },
-  { label: "JUP", top: "14%", left: "58%", size: 38, delay: "2.7s", from: "#a855f7", to: "#6366f1" },
-  { label: "WIF", top: "38%", left: "82%", size: 46, delay: "0.5s", from: "#22c55e", to: "#15803d" },
-  { label: "JITO", top: "56%", left: "21%", size: 40, delay: "1.9s", from: "#fc72ff", to: "#7c3aed" },
-  { label: "SOL", top: "58%", left: "60%", size: 52, delay: "1.1s", from: "#9945FF", to: "#14F195" },
-  { label: "HELIUS", top: "-2%", left: "18%", size: 46, delay: "0.2s", from: "#38bdf8", to: "#0284c7" },
-  { label: "SOLANA", top: "96%", left: "80%", size: 50, delay: "1.7s", from: "#9945FF", to: "#14F195" },
-  { label: "BONK", top: "26%", left: "48%", size: 30, delay: "2.9s", from: "#f59e0b", to: "#ea580c" },
-  { label: "WIF", top: "-3%", left: "58%", size: 36, delay: "0.8s", from: "#22c55e", to: "#15803d" },
-  { label: "USDC", top: "72%", left: "48%", size: 34, delay: "2.3s", from: "#2775ca", to: "#1e3a8a" },
-  { label: "JUP", top: "6%", left: "94%", size: 42, delay: "1.5s", from: "#a855f7", to: "#6366f1" },
-  { label: "JITO", top: "100%", left: "60%", size: 44, delay: "0.4s", from: "#fc72ff", to: "#7c3aed" },
-  { label: "SOL", top: "96%", left: "3%", size: 38, delay: "2.0s", from: "#9945FF", to: "#14F195" },
-];
 
 const CTA_GHOST =
   "inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:text-[var(--accent)]";
@@ -129,38 +104,12 @@ const FAQ = [
 export default function LandingPage() {
   return (
     <div className="landing-dark flex flex-col flex-1 font-sans">
-      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--background)]/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4 lg:px-12">
-          <div className="flex items-center gap-2.5">
-            <Image src="/logo.jpeg" alt="VERA" width={28} height={28} className="rounded-full object-cover" />
-            <span className="text-base font-semibold tracking-tight">VERA</span>
-          </div>
-          <ConnectButton />
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="flex flex-col">
         {/* Hero — centered giant headline, Uniswap-style, card stacked below */}
         <section id="trade" className="bg-dots relative overflow-hidden border-b border-[var(--line)]">
-          <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
-            {HERO_ORBS.map((orb, i) => (
-              <span
-                key={`${orb.label}-${i}`}
-                className="hero-orb"
-                style={{
-                  top: orb.top,
-                  left: orb.left,
-                  width: orb.size,
-                  height: orb.size,
-                  fontSize: Math.max(7, orb.size * 0.19),
-                  background: `linear-gradient(135deg, ${orb.from}, ${orb.to})`,
-                  ["--delay" as string]: orb.delay,
-                }}
-              >
-                {orb.label}
-              </span>
-            ))}
-          </div>
+          <HeroOrbs />
 
           <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-6 py-20 text-center lg:px-12 lg:py-24">
             <Reveal className="flex flex-col items-center gap-7">
@@ -443,7 +392,9 @@ export default function LandingPage() {
                         <span className="font-sans text-xs text-[var(--muted)]">{row.note}</span>
                       </span>
                     </span>
-                    <span className="value-pill shrink-0">{row.value}</span>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${pillClassFor(row.state)}`}>
+                      {row.value}
+                    </span>
                   </li>
                 ))}
               </ul>

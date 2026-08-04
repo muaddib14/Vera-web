@@ -1,11 +1,10 @@
-import Image from "next/image";
+import Link from "next/link";
 import ConnectButton from "@/components/ConnectButton";
 import SiteHeader from "@/components/SiteHeader";
-import CountUp from "@/components/CountUp";
 import Reveal from "@/components/Reveal";
 import TradeConsole from "@/components/TradeConsole";
 import HeroOrbs from "@/components/HeroOrbs";
-import DiamondField from "@/components/DiamondField";
+import LiveProtocolStats from "@/components/LiveProtocolStats";
 import { StatusIcon, pillClassFor } from "@/components/StatusIcon";
 import { LockIcon, ShieldIcon, LayersIcon, UsersIcon, BoltIcon, KeyIcon } from "@/components/icons";
 
@@ -22,14 +21,6 @@ const DISPLAY = "font-sans font-extrabold";
 
 const CTA_GHOST =
   "inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:text-[var(--accent)]";
-
-// Featured stat leads the giant-number section — <1s reads far more
-// impressive at 8xl display scale than the honest-but-small "4".
-const STATS = [
-  { value: "<1s", label: "added to your quote — not instead of it" },
-  { value: "4", label: "on-chain checks that can veto a swap" },
-  { value: "0", label: "wallets this app ever touches" },
-];
 
 // Official favicons via Google's favicon service — real logos, no guessing
 // at brand-asset CDN paths that might not exist. SPL Token-2022 is a
@@ -111,6 +102,38 @@ const FAQ = [
   },
 ];
 
+// Footer columns — same visual pattern Uniswap uses (Products/Protocol/
+// Company), but every row is a real destination: a page VERA actually has,
+// or the real site of the infra it routes through. No Careers/Governance/
+// Blog placeholders for pages that don't exist.
+const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string; external?: boolean }[] }[] = [
+  {
+    heading: "Product",
+    links: [
+      { label: "Trade", href: "/" },
+      { label: "Explore", href: "/explore" },
+      { label: "Portfolio", href: "/portfolio" },
+    ],
+  },
+  {
+    heading: "Safety",
+    links: [
+      { label: "The checklist", href: "#checklist" },
+      { label: "FAQ", href: "#faq" },
+      { label: "Verify on Solscan", href: "https://solscan.io", external: true },
+    ],
+  },
+  {
+    heading: "Built on",
+    links: [
+      { label: "Jupiter", href: "https://jup.ag", external: true },
+      { label: "Helius", href: "https://helius.dev", external: true },
+      { label: "Jito", href: "https://jito.wtf", external: true },
+      { label: "Solana", href: "https://solana.com", external: true },
+    ],
+  },
+];
+
 export default function LandingPage() {
   return (
     <div className="landing-dark flex flex-col flex-1 font-sans">
@@ -160,6 +183,44 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Feature grid — uniform 3x2, distinct icon per card */}
+        <section className="border-b border-[var(--line)]">
+          <div className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12 lg:py-28">
+            <Reveal className="max-w-2xl">
+              <h2 className={`${DISPLAY} text-3xl tracking-tighter text-[var(--foreground)] lg:text-4xl`}>
+                One tool. One job.
+              </h2>
+              <p className="mt-3 text-base text-[var(--muted)]">
+                Not a trading terminal. Not a portfolio tracker. A router with a rug-check
+                built into the quote path.
+              </p>
+            </Reveal>
+            <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map((feature, i) => (
+                <Reveal key={feature.title} delayMs={i * 60}>
+                  <div className={`tile ${feature.tile} flex h-full flex-col justify-between gap-8 p-6 lg:p-7`}>
+                    <div className="flex items-center justify-between">
+                      <span className="tile-icon shrink-0">
+                        <feature.icon />
+                      </span>
+                      <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-white/70">
+                        {feature.tag}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <p className={`${DISPLAY} text-xl tracking-tight text-white lg:text-2xl`}>{feature.title}</p>
+                      <p className="text-sm leading-relaxed text-white/70">{feature.body}</p>
+                      <a href="#checklist" className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-white hover:text-white/80">
+                        See it in the checklist →
+                      </a>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Protocol-stats panel — Uniswap's two-column layout: headline +
             copy on the left, live stat grid on the right. */}
         <section className="border-b border-[var(--line)]">
@@ -187,23 +248,8 @@ export default function LandingPage() {
                 VERA protocol stats
               </span>
 
-              <div className="grid grid-cols-2 gap-3">
-                {STATS.map((stat, i) => (
-                  <div
-                    key={stat.label}
-                    className={`stat-cell flex flex-col gap-2 rounded-3xl border border-[var(--line)] bg-[var(--surface)] px-6 py-8 ${
-                      i === 0 ? "col-span-2" : ""
-                    }`}
-                  >
-                    <span className="text-sm text-[var(--muted)]">{stat.label}</span>
-                    <CountUp
-                      value={stat.value}
-                      className={`${DISPLAY} text-4xl tracking-tighter sm:text-5xl ${
-                        i === 0 ? "text-[var(--accent-strong)]" : "text-[var(--foreground)]"
-                      }`}
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                <LiveProtocolStats />
               </div>
             </Reveal>
           </div>
@@ -281,68 +327,23 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Two column — copy + a bespoke diamond-scatter motif (real SVG, not a repeating pattern) */}
+        {/* Same read section — single tile card, matches the router/checklist tile pattern */}
         <section className="border-b border-[var(--line)] bg-[var(--surface)]">
-          <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="flex flex-col justify-center px-6 py-20 lg:px-12 lg:py-28">
-              <Reveal className="flex flex-col gap-4">
-                <p className={`${DISPLAY} text-3xl tracking-tight text-[var(--foreground)] lg:text-4xl`}>
-                  Every mint gets the same read.
-                </p>
-                <p className="max-w-md text-base text-[var(--muted)]">
-                  Paste an address and both requests fire together: Jupiter prices the trade,
-                  while VERA reads the mint account, the pool, and the holder list directly
-                  off-chain state. Neither one waits for the other.
-                </p>
-                <p className="max-w-md text-base text-[var(--muted)]">
-                  A hard-kill signal — live freeze authority, live mint authority — stops the
-                  swap button until you say, explicitly, that you understand the risk.
-                </p>
-              </Reveal>
-            </div>
-
-            <div className="diamond-field relative hidden aspect-square w-full self-center lg:block">
-              <DiamondField className="absolute inset-0 h-full w-full text-[var(--accent)]" />
-              <Image src="/logo.jpeg" alt="VERA" fill sizes="50vw" className="relative z-10 object-contain" />
-            </div>
-          </div>
-        </section>
-
-        {/* Feature grid — uniform 3x2, distinct icon per card */}
-        <section className="border-b border-[var(--line)]">
           <div className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12 lg:py-28">
-            <Reveal className="max-w-2xl">
-              <h2 className={`${DISPLAY} text-3xl tracking-tighter text-[var(--foreground)] lg:text-4xl`}>
-                One tool. One job.
-              </h2>
-              <p className="mt-3 text-base text-[var(--muted)]">
-                Not a trading terminal. Not a portfolio tracker. A router with a rug-check
-                built into the quote path.
+            <Reveal className="tile tile-purple flex flex-col gap-4 p-8 lg:p-12">
+              <p className={`${DISPLAY} text-3xl tracking-tight text-white lg:text-4xl`}>
+                Every mint gets the same read.
+              </p>
+              <p className="max-w-md text-base text-white/70">
+                Paste an address and both requests fire together: Jupiter prices the trade,
+                while VERA reads the mint account, the pool, and the holder list directly
+                off-chain state. Neither one waits for the other.
+              </p>
+              <p className="max-w-md text-base text-white/70">
+                A hard-kill signal — live freeze authority, live mint authority — stops the
+                swap button until you say, explicitly, that you understand the risk.
               </p>
             </Reveal>
-            <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map((feature, i) => (
-                <Reveal key={feature.title} delayMs={i * 60}>
-                  <div className={`tile ${feature.tile} flex h-full flex-col justify-between gap-8 p-6 lg:p-7`}>
-                    <div className="flex items-center justify-between">
-                      <span className="tile-icon shrink-0">
-                        <feature.icon />
-                      </span>
-                      <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-white/70">
-                        {feature.tag}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <p className={`${DISPLAY} text-xl tracking-tight text-white lg:text-2xl`}>{feature.title}</p>
-                      <p className="text-sm leading-relaxed text-white/70">{feature.body}</p>
-                      <a href="#checklist" className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-white hover:text-white/80">
-                        See it in the checklist →
-                      </a>
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -503,7 +504,7 @@ export default function LandingPage() {
         {/* FAQ — Uniswap's "Explore the UNIverse" row pattern, repointed at
             answers VERA can actually give instead of Docs/Blog links that
             don't exist yet. */}
-        <section className="border-b border-[var(--line)]">
+        <section id="faq" className="border-b border-[var(--line)]">
           <div className="mx-auto w-full max-w-4xl px-6 py-20 lg:px-12">
             <Reveal>
               <h2 className={`${DISPLAY} text-3xl tracking-tighter text-[var(--foreground)] lg:text-4xl`}>
@@ -548,7 +549,36 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-[var(--line)]">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-6 py-8 text-xs text-[var(--muted)] lg:px-12">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-2 gap-8 px-6 py-14 sm:grid-cols-3 lg:px-12">
+          {FOOTER_COLUMNS.map((col) => (
+            <div key={col.heading} className="flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--foreground)]">{col.heading}</p>
+              {col.links.map((link) =>
+                link.external ? (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+                  >
+                    {link.label}
+                  </a>
+                ) : link.href.startsWith("#") ? (
+                  <a key={link.label} href={link.href} className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link key={link.label} href={link.href} className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]">
+                    {link.label}
+                  </Link>
+                )
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 border-t border-[var(--line)] px-6 py-8 text-xs text-[var(--muted)] lg:px-12">
           <span>VERA checks freeze authority, mint authority, LP lock, and holder concentration live.</span>
           <span>
             Reads and routes via Jupiter, Helius, Jito, and Solana — verify any of it yourself on Solscan.
@@ -557,7 +587,7 @@ export default function LandingPage() {
             No custody, ever — your wallet signs every transaction directly. A clean checklist is
             a snapshot, not a guarantee, and this is disclosure, not financial advice.
           </span>
-        </div>
+        </div> */}
       </footer>
     </div>
   );

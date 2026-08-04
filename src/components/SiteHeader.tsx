@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ConnectButton from "@/components/ConnectButton";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -52,13 +52,27 @@ const SOON_TOP_LEVEL = ["Pool", "Launches"];
 
 export default function SiteHeader() {
   const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 64);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--background)]/85 backdrop-blur">
+    <header
+      className={`sticky top-0 z-20 transition-colors ${
+        scrolled
+          ? "border-b border-[var(--line)] bg-[var(--background)]/85 backdrop-blur"
+          : "border-b border-transparent bg-transparent"
+      }`}
+    >
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-4 lg:px-12">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
-            <Image src="/logo.jpeg" alt="VERA" width={28} height={28} className="rounded-full object-cover" />
+            <Image src="/logo.png" alt="VERA" width={28} height={28} className="rounded-full object-cover" />
             <span className="text-base font-semibold tracking-tight">VERA</span>
           </Link>
 

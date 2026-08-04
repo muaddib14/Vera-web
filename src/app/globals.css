@@ -285,6 +285,38 @@ body {
   color: #fff;
 }
 
+/* Light mode tiles — pastel wash instead of near-black base, dark ink
+   instead of white text. Targets Tailwind's own generated utility classes
+   (text-white/70 etc.) directly so no markup in page.tsx has to change —
+   one CSS block re-themes every tile at once. */
+:root[data-theme="light"] .tile-purple { background: radial-gradient(120% 140% at 100% 0%, rgba(155, 92, 255, 0.28), transparent 60%), #f1edff; }
+:root[data-theme="light"] .tile-pink   { background: radial-gradient(120% 140% at 100% 0%, rgba(252, 114, 255, 0.25), transparent 60%), #fdeefc; }
+:root[data-theme="light"] .tile-orange { background: radial-gradient(120% 140% at 100% 0%, rgba(255, 145, 64, 0.25), transparent 60%), #fef1e6; }
+:root[data-theme="light"] .tile-green  { background: radial-gradient(120% 140% at 100% 0%, rgba(70, 220, 150, 0.22), transparent 60%), #eaf9f1; }
+:root[data-theme="light"] .tile-blue   { background: radial-gradient(120% 140% at 100% 0%, rgba(80, 160, 255, 0.22), transparent 60%), #eaf3ff; }
+:root[data-theme="light"] .tile-teal   { background: radial-gradient(120% 140% at 100% 0%, rgba(60, 220, 210, 0.2), transparent 60%), #e9faf8; }
+
+:root[data-theme="light"] .tile-icon {
+  background: rgba(20, 15, 30, 0.07);
+  color: #211a2e;
+}
+
+:root[data-theme="light"] .tile .text-white,
+:root[data-theme="light"] .tile a.text-white:hover { color: #17121f !important; }
+:root[data-theme="light"] .tile .text-white\/80 { color: rgba(23, 18, 31, 0.75) !important; }
+:root[data-theme="light"] .tile .text-white\/70,
+:root[data-theme="light"] .tile a.hover\:text-white\/80:hover { color: rgba(23, 18, 31, 0.68) !important; }
+:root[data-theme="light"] .tile .text-white\/60 { color: rgba(23, 18, 31, 0.55) !important; }
+:root[data-theme="light"] .tile .text-white\/50 { color: rgba(23, 18, 31, 0.45) !important; }
+:root[data-theme="light"] .tile .bg-white\/40 { background-color: rgba(23, 18, 31, 0.3) !important; }
+:root[data-theme="light"] .tile .bg-white\/5 { background-color: rgba(23, 18, 31, 0.05) !important; }
+:root[data-theme="light"] .tile .bg-white\/10 { background-color: rgba(23, 18, 31, 0.08) !important; }
+:root[data-theme="light"] .tile .border-white\/15 { border-color: rgba(23, 18, 31, 0.14) !important; }
+:root[data-theme="light"] .tile .border-white\/10,
+:root[data-theme="light"] .tile .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(23, 18, 31, 0.12) !important;
+}
+
 /* Value pill used in divided list rows */
 .value-pill {
   border-radius: 9999px;

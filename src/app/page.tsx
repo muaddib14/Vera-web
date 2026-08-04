@@ -31,7 +31,17 @@ const STATS = [
   { value: "0", label: "wallets this app ever touches" },
 ];
 
-const STACK = ["Jupiter", "Helius", "Jito", "Solana", "SPL Token-2022", "Solscan"];
+// Official favicons via Google's favicon service — real logos, no guessing
+// at brand-asset CDN paths that might not exist. SPL Token-2022 is a
+// program, not a company, so it gets no logo rather than a borrowed one.
+const STACK = [
+  { name: "Jupiter", domain: "jup.ag" },
+  { name: "Helius", domain: "helius.dev" },
+  { name: "Jito", domain: "jito.wtf" },
+  { name: "Solana", domain: "solana.com" },
+  { name: "SPL Token-2022" },
+  { name: "Solscan", domain: "solscan.io" },
+];
 
 const FEATURES = [
   {
@@ -134,9 +144,17 @@ export default function LandingPage() {
         {/* Trust marquee — the real infrastructure this reads and routes through */}
         <section className="overflow-hidden border-b border-[var(--line)] bg-[var(--surface)] py-6">
           <div className="marquee-track gap-16">
-            {[...STACK, ...STACK, ...STACK, ...STACK].map((name, i) => (
-              <span key={`${name}-${i}`} className="shrink-0 text-sm font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
-                {name}
+            {[...STACK, ...STACK, ...STACK, ...STACK].map((item, i) => (
+              <span key={`${item.name}-${i}`} className="flex shrink-0 items-center gap-2 text-sm font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
+                {item.domain && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=64`}
+                    alt=""
+                    className="h-4 w-4 rounded-sm"
+                  />
+                )}
+                {item.name}
               </span>
             ))}
           </div>
@@ -221,10 +239,10 @@ export default function LandingPage() {
                   Get a quote →
                 </a>
                 <ul className="mt-2 flex flex-col gap-2 border-t border-white/10 pt-4 font-mono text-xs text-white/60">
-                  {STACK.map((name) => (
-                    <li key={name} className="flex items-center gap-2">
+                  {STACK.map((item) => (
+                    <li key={item.name} className="flex items-center gap-2">
                       <span className="h-1 w-1 rounded-full bg-white/40" />
-                      {name}
+                      {item.name}
                     </li>
                   ))}
                 </ul>

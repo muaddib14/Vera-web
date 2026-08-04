@@ -2,22 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTokenInfo, searchTokens } from "@/lib/jupiter";
+import { getTrendingTokens } from "@/lib/jupiter";
+import type { TrendingToken } from "@/lib/jupiter";
 
-// The five coins the lead asked for, by real mint where we know it —
-// PUMP is looked up by symbol since its mint isn't hardcoded anywhere
-// else in the app. Icons come from Jupiter's own token API, the same
-// source TradeConsole already uses for the Buy-side token badge.
-const HERO_TOKENS = [
-  { key: "USDC", mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", from: "#2775ca", to: "#1e3a8a" },
-  { key: "USDT", mint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", from: "#26a17b", to: "#0d7a5f" },
-  { key: "SOL", mint: "So11111111111111111111111111111111111111112", from: "#9945FF", to: "#14F195" },
-  { key: "JUP", mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN", from: "#a855f7", to: "#6366f1" },
-  { key: "PUMP", symbolQuery: "PUMP", from: "#22c55e", to: "#15803d" },
-] as const;
-
-// Positions/sizes/timing for the floating field — cycles through the five
-// real tokens above so the same coin can appear more than once, scattered.
+// Positions/sizes/timing for the floating field — same slots as before, now
+// filled from Explore's live trending list instead of five fixed tokens, so
+// the background doesn't repeat the same handful of icons.
 const ORB_SLOTS = [
   { top: "9%", left: "5%", size: 92, delay: "0s" },
   { top: "48%", left: "2%", size: 68, delay: "1.2s" },
@@ -41,65 +31,67 @@ const ORB_SLOTS = [
   { top: "6%", left: "94%", size: 42, delay: "1.5s" },
   { top: "100%", left: "60%", size: 44, delay: "0.4s" },
   { top: "96%", left: "3%", size: 38, delay: "2.0s" },
+  { top: "24%", left: "68%", size: 44, delay: "1.3s" },
+  { top: "42%", left: "97%", size: 40, delay: "2.6s" },
+  { top: "70%", left: "3%", size: 36, delay: "0.7s" },
+  { top: "88%", left: "58%", size: 34, delay: "1.0s" },
+  { top: "10%", left: "28%", size: 32, delay: "2.5s" },
+  { top: "62%", left: "38%", size: 30, delay: "0.6s" },
+  { top: "32%", left: "30%", size: 36, delay: "1.8s" },
+  { top: "80%", left: "88%", size: 42, delay: "2.2s" },
+  { top: "50%", left: "48%", size: 26, delay: "0.1s" },
+  { top: "16%", left: "8%", size: 28, delay: "1.6s" },
 ] as const;
 
-type TokenKey = (typeof HERO_TOKENS)[number]["key"];
-type ResolvedMap = Partial<Record<TokenKey, { icon?: string; mint: string }>>;
+// Deterministic fallback gradients, cycled by index — only shown for the
+// rare token with no icon on Jupiter, not the common case.
+const FALLBACK_GRADIENTS = [
+  ["#9945FF", "#14F195"],
+  ["#2775ca", "#1e3a8a"],
+  ["#a855f7", "#6366f1"],
+  ["#22c55e", "#15803d"],
+  ["#f59e0b", "#ea580c"],
+  ["#fc72ff", "#7c3aed"],
+];
 
 export default function HeroOrbs() {
-  const [resolved, setResolved] = useState<ResolvedMap>({});
+  const [tokens, setTokens] = useState<TrendingToken[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all(
-      HERO_TOKENS.map(async (t) => {
-        const info =
-          "mint" in t
-            ? await getTokenInfo(t.mint)
-            : (await searchTokens(t.symbolQuery)).find((r) => r.symbol.toUpperCase() === t.key) ?? null;
-        const mint = "mint" in t ? t.mint : info?.id;
-        if (!mint) return null;
-        return [t.key, { icon: info?.icon, mint }] as const;
-      })
-    ).then((pairs) => {
-      if (cancelled) return;
-      setResolved(Object.fromEntries(pairs.filter((p): p is NonNullable<typeof p> => p !== null)));
+    getTrendingTokens("24h", ORB_SLOTS.length).then((data) => {
+      if (!cancelled) setTokens(data);
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  if (tokens.length === 0) return null;
+
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
       {ORB_SLOTS.map((slot, i) => {
-        const token = HERO_TOKENS[i % HERO_TOKENS.length];
-        const info = resolved[token.key];
-        const orbStyle = {
+        const token = tokens[i % tokens.length];
+        const [from, to] = FALLBACK_GRADIENTS[i % FALLBACK_GRADIENTS.length];
+        const style = {
           top: slot.top,
           left: slot.left,
           width: slot.size,
           height: slot.size,
           fontSize: Math.max(7, slot.size * 0.19),
-          background: info?.icon ? undefined : `linear-gradient(135deg, ${token.from}, ${token.to})`,
+          background: token.icon ? undefined : `linear-gradient(135deg, ${from}, ${to})`,
           ["--delay" as string]: slot.delay,
         };
-        const content = info?.icon ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={info.icon} alt="" className="h-full w-full object-cover" />
-        ) : (
-          token.key
-        );
-
-        // Only clickable once we know its mint — no dead link while resolving.
-        return info?.mint ? (
-          <Link key={i} href={`/token/${info.mint}`} className="hero-orb overflow-hidden" style={orbStyle} title={`View ${token.key}`}>
-            {content}
+        return (
+          <Link key={`${token.id}-${i}`} href={`/token/${token.id}`} className="hero-orb overflow-hidden" style={style} title={`View ${token.symbol}`}>
+            {token.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={token.icon} alt="" className="h-full w-full object-cover" />
+            ) : (
+              token.symbol.slice(0, 2)
+            )}
           </Link>
-        ) : (
-          <span key={i} className="hero-orb overflow-hidden" style={orbStyle}>
-            {content}
-          </span>
         );
       })}
     </div>

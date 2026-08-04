@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import ConnectButton from "@/components/ConnectButton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type NavItem = {
   label: string;
@@ -78,7 +79,10 @@ export default function SiteHeader() {
           </nav>
         </div>
 
-        <ConnectButton />
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <ConnectButton />
+        </div>
       </div>
     </header>
   );

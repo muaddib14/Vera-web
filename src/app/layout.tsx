@@ -1,7 +1,19 @@
 import type { Metadata } from "next";
 import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import SolanaWalletProvider from "@/components/SolanaWalletProvider";
+import ThemeProvider from "@/components/ThemeProvider";
 import "./globals.css";
+
+// Runs before paint, straight in <head> — sets data-theme from localStorage
+// so the page never flashes dark-then-light (or vice versa) on load.
+const THEME_INIT_SCRIPT = `
+(function() {
+  try {
+    var t = localStorage.getItem('vera-theme');
+    document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';
+  } catch (e) {}
+})();
+`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,9 +47,15 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
-        <SolanaWalletProvider>{children}</SolanaWalletProvider>
+        <ThemeProvider>
+          <SolanaWalletProvider>{children}</SolanaWalletProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

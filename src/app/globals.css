@@ -102,6 +102,25 @@ body {
   color: var(--foreground);
 }
 
+/* Light mode — same brand pink, swapped onto a white/paper surface instead
+   of near-black. Gated on the <html data-theme> the ThemeProvider sets, so
+   toggling it re-themes every page without touching each page's markup. */
+:root[data-theme="light"] .landing-dark,
+:root[data-theme="light"] .app-shell {
+  --background: #ffffff;
+  --surface: #f7f7fa;
+  --surface-2: #eeeef3;
+  --foreground: #14131a;
+  --muted: #6b6a76;
+  --line: #e3e2ea;
+  --accent: #e93ee6;
+  --accent-strong: #c722c4;
+  --accent-soft: rgba(233, 62, 230, 0.1);
+  --accent-on: #ffffff;
+  background: var(--background);
+  color: var(--foreground);
+}
+
 /* Fine grid + radial vignette backdrop for the console shell */
 .console-grid {
   position: relative;

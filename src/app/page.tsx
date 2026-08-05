@@ -158,7 +158,7 @@ export default function LandingPage() {
               </p>
             </Reveal>
 
-            <Reveal delayMs={150} className="pointer-events-auto w-full pt-2">
+            <Reveal delayMs={150} className="pointer-events-auto mx-auto w-full max-w-[480px] pt-2">
               <TradeConsole />
             </Reveal>
           </div>

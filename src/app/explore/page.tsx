@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import Skeleton from "@/components/Skeleton";
-import { getTrendingTokens, formatUsd } from "@/lib/jupiter";
+import { getTrendingTokens, getTokenInfo, formatUsd } from "@/lib/jupiter";
 import type { TrendingToken } from "@/lib/jupiter";
+import { PINNED_TOKENS } from "@/lib/pinnedTokens";
 
 const INTERVALS = [
   { value: "5m", label: "5m" },
@@ -49,14 +50,27 @@ export default function ExplorePage() {
   const [interval, setInterval] = useState<(typeof INTERVALS)[number]["value"]>("24h");
   const [tokens, setTokens] = useState<TrendingToken[] | null>(null);
   const [query, setQuery] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("volume");
+  const [sortKey, setSortKey] = useState<SortKey>("rank");
 
   useEffect(() => {
     let cancelled = false;
     setTokens(null);
-    getTrendingTokens(interval, 30).then((data) => {
-      if (!cancelled) setTokens(data);
+
+    // Pinned tokens (SOL, USDC, USDT, ...) go first, deduped against
+    // whatever Jupiter's trending feed returns — SOL/USDC/USDT rarely
+    // "trend" even though they're what most people search for.
+    Promise.all([
+      Promise.all(PINNED_TOKENS.map((t) => getTokenInfo(t.mint))),
+      getTrendingTokens(interval, 30),
+    ]).then(([pinnedInfos, trending]) => {
+      if (cancelled) return;
+      const pinned: TrendingToken[] = pinnedInfos
+        .map((info, i) => (info ? { ...info, isVerified: true } : { ...PINNED_TOKENS[i], id: PINNED_TOKENS[i].mint, name: PINNED_TOKENS[i].symbol, decimals: 0 }))
+        .map((t) => ({ ...t, icon: t.icon ?? PINNED_TOKENS.find((p) => p.mint === t.id)?.icon }));
+      const pinnedIds = new Set(pinned.map((t) => t.id));
+      setTokens([...pinned, ...trending.filter((t) => !pinnedIds.has(t.id))]);
     });
+
     return () => {
       cancelled = true;
     };

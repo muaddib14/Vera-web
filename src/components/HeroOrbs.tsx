@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { PINNED_TOKENS } from "@/lib/pinnedTokens";
+
 // Positions/sizes/timing for the floating field. Sizes bumped up ~1.35x
 // from the original live-trending version per request ("agak digedein").
 // Pulled in closer to the card so the gap between it and the screen edge
@@ -16,23 +19,11 @@ const ORB_SLOTS = [
 
 const DELAYS = ["0s", "1.2s", "0.6s", "1.8s", "2.4s", "0.9s", "1.6s"];
 
-// Fixed token set per request — pump, hype, zcash, Circle xStock, solana,
-// usdc, usdt — instead of the live Jupiter trending list.
-const TOKENS = [
-  { symbol: "PUMP", icon: "https://coin-images.coingecko.com/coins/images/67164/large/pump.jpg" },
-  { symbol: "HYPE", icon: "https://coin-images.coingecko.com/coins/images/50882/large/hyperliquid.jpg" },
-  { symbol: "ZEC", icon: "https://coin-images.coingecko.com/coins/images/486/large/Brandmark-Yellow_%281%29.png" },
-  { symbol: "CRCLX", icon: "https://coin-images.coingecko.com/coins/images/66918/large/CRCLx.png" },
-  { symbol: "SOL", icon: "https://coin-images.coingecko.com/coins/images/4128/large/solana.png" },
-  { symbol: "USDC", icon: "https://coin-images.coingecko.com/coins/images/6319/large/usdc.png" },
-  { symbol: "USDT", icon: "https://coin-images.coingecko.com/coins/images/325/large/Tether.png" },
-] as const;
-
 export default function HeroOrbs() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
       {ORB_SLOTS.map((slot, i) => {
-        const token = TOKENS[i % TOKENS.length];
+        const token = PINNED_TOKENS[i % PINNED_TOKENS.length];
         const style = {
           top: slot.top,
           left: slot.left,
@@ -41,10 +32,16 @@ export default function HeroOrbs() {
           ["--delay" as string]: DELAYS[i % DELAYS.length],
         };
         return (
-          <div key={token.symbol} className="hero-orb overflow-hidden" style={style} title={token.symbol}>
+          <Link
+            key={token.symbol}
+            href={`/token/${token.mint}`}
+            className="hero-orb overflow-hidden"
+            style={style}
+            title={`View ${token.symbol}`}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={token.icon} alt="" className="h-full w-full object-cover" />
-          </div>
+          </Link>
         );
       })}
     </div>

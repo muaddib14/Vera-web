@@ -50,6 +50,30 @@ const NAV: NavItem[] = [
 
 const SOON_TOP_LEVEL = ["Pool", "Launches"];
 
+// VERA's own token — pump.fun launch, shown so it's copyable straight from
+// the header instead of buried in a tweet or a pinned message.
+const VERA_CA = "5N78M6meJZN2vR7gnKNkiX64JcuHTRFTT9EN7EGBpump";
+
+function CaBadge() {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard.writeText(VERA_CA);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      title={VERA_CA}
+      className="hidden shrink-0 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 font-mono text-xs text-[var(--muted)] transition-colors hover:text-[var(--foreground)] lg:flex"
+    >
+      <span className="font-semibold text-[var(--accent-strong)]">CA</span>
+      {copied ? "Copied!" : `${VERA_CA.slice(0, 4)}…${VERA_CA.slice(-4)}`}
+    </button>
+  );
+}
+
 export default function SiteHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -75,6 +99,8 @@ export default function SiteHeader() {
             <Image src="/logo.png" alt="VERA" width={28} height={28} className="rounded-full object-cover" />
             <span className="text-base font-semibold tracking-tight">VERA</span>
           </Link>
+
+          <CaBadge />
 
           <nav className="hidden items-center gap-1 md:flex">
             {NAV.map((item) => {

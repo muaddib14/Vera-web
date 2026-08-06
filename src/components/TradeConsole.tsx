@@ -102,7 +102,6 @@ const POPULAR_TOKENS = [
   { symbol: "JUP", mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" },
   { symbol: "USDC", mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
   { symbol: "WIF", mint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm" },
-  { symbol: "VERA", mint: "5N78M6meJZN2vR7gnKNkiX64JcuHTRFTT9EN7EGBpump" },
 ];
 
 function Spinner() {

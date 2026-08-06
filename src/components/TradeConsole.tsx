@@ -31,6 +31,12 @@ const WalletMultiButton = dynamic(
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const JITO_TIP_LAMPORTS = 100_000; // 0.0001 SOL — fixed, not user-configurable in v1
 
+// ponytail: dry-run switch for rehearsing the record-flow with no SOL at
+// risk — Jupiter has no devnet liquidity, so this fakes the swap step only
+// (quote/checklist/wallet-connect stay real). Must be off for the actual
+// recording; see .env.local.
+const MOCK_SWAP = process.env.NEXT_PUBLIC_MOCK_SWAP === "true";
+
 // Jupiter's API returns no expiry field on a quote — staleness is a
 // convention we impose client-side because meme-coin prices move fast.
 // 20s matches the window Jupiter's own swap UI treats as "stale, refresh me".
@@ -96,6 +102,7 @@ const POPULAR_TOKENS = [
   { symbol: "JUP", mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" },
   { symbol: "USDC", mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
   { symbol: "WIF", mint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm" },
+  { symbol: "VERA", mint: "5N78M6meJZN2vR7gnKNkiX64JcuHTRFTT9EN7EGBpump" },
 ];
 
 function Spinner() {
@@ -262,6 +269,16 @@ export default function TradeConsole({ initialMint }: { initialMint?: string } =
     setBusy(true);
     setStatus(null);
     setMevResult(null);
+
+    if (MOCK_SWAP) {
+      setStatus("Sent. Confirming on-chain…");
+      await new Promise((r) => setTimeout(r, 1400));
+      setSignature("MOCK" + Date.now().toString(36).toUpperCase());
+      setStatus("Confirmed.");
+      setBusy(false);
+      return;
+    }
+
     try {
       const { swapTransaction } = await getSwapTransaction({
         quoteResponse: quote,
